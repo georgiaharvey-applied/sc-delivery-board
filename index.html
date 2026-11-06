@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>SC Delivery Board</title>
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<style>
+/* Layout: AppliedAI brand. Thin blue top bar, white header with logo, black hero with two-tone headline and stats, then OKRs, pipeline, updates and team; Projects = editable cards; Updates = shared notes feed */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --card:#F4F4F5; --sunk:#F4F4F5; --fg:#181818; --muted:#71717A; --soft:#A1A1AA; --line:#E4E4E7; --line-strong:#D4D4D8;
+  --blue:#2563EB; --blue-2:#3B82F6; --blue-3:#60A5FA; --blue-wash:#DBEAFE; --blue-faint:#EFF6FF; --on-blue:#FFFFFF;
+  --hero-bg:#181818; --hero-fg:#FFFFFF; --hero-muted:#A1A1AA; --hero-line:#3F3F46;
+  --good:#15803D; --good-soft:#DCFCE7; --warn:#B45309; --warn-soft:#FEF3C7; --bad:#B91C1C; --bad-soft:#FEE2E2;
+  --f-display:"Google Sans","Google Sans Text","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Inter","Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B0B0C; --surface:#131315; --card:#18181B; --sunk:#1F1F23; --fg:#F4F4F5; --muted:#A1A1AA; --soft:#71717A; --line:#27272A; --line-strong:#3F3F46;
+  --blue:#3B82F6; --blue-2:#60A5FA; --blue-3:#93C5FD; --blue-wash:#172554; --blue-faint:#0F1A33; --on-blue:#FFFFFF;
+  --hero-bg:#18181B; --hero-fg:#FFFFFF; --hero-muted:#A1A1AA; --hero-line:#3F3F46;
+  --good:#4ADE80; --good-soft:#0F2A18; --warn:#FBBF24; --warn-soft:#2E220A; --bad:#F87171; --bad-soft:#331414;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0B0C; --surface:#131315; --card:#18181B; --sunk:#1F1F23; --fg:#F4F4F5; --muted:#A1A1AA; --soft:#71717A; --line:#27272A; --line-strong:#3F3F46;
+  --blue:#3B82F6; --blue-2:#60A5FA; --blue-3:#93C5FD; --blue-wash:#172554; --blue-faint:#0F1A33; --on-blue:#FFFFFF;
+  --hero-bg:#18181B; --hero-fg:#FFFFFF; --hero-muted:#A1A1AA; --hero-line:#3F3F46;
+  --good:#4ADE80; --good-soft:#0F2A18; --warn:#FBBF24; --warn-soft:#2E220A; --bad:#F87171; --bad-soft:#331414;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.signin{max-width:460px;margin:8vh auto 0;background:var(--card);border-radius:20px;padding:32px;display:flex;flex-direction:column;gap:14px;text-align:left}
+.signin h1{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.2;margin:0}
+.signin h1 .g{color:var(--muted)}
+.signin p{margin:0;color:var(--muted)}
+.acct{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--blue)}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-top:4px solid var(--blue);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;padding-block:12px}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand img{height:22px;width:auto;display:block}
+.logo-w{display:none!important}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .logo-b{display:none!important}:root:not([data-theme="light"]) .logo-w{display:block!important}}
+:root[data-theme="dark"] .logo-b{display:none!important}:root[data-theme="dark"] .logo-w{display:block!important}
+.brand .unit{font-family:var(--f-display);font-weight:500;font-size:14px;color:var(--muted);padding-left:14px;border-left:1px solid var(--line-strong);white-space:nowrap}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;max-width:100%}
+nav.tabs a{padding:7px 14px;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap;font-family:var(--f-display)}
+nav.tabs a:hover{color:var(--fg);background:var(--sunk)}
+nav.tabs a[aria-current="page"]{background:var(--fg);color:var(--bg)}
+.whoami{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+
+main{padding-block:24px 64px;display:flex;flex-direction:column;gap:40px}
+h2,h3,h4{font-family:var(--f-display);font-weight:500;margin:0;text-wrap:balance}
+h2{font-size:22px;letter-spacing:-.01em}
+h2 .g{color:var(--muted)}
+h3{font-size:16px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:16px}
+.sec-head p{margin:0;color:var(--muted);font-size:13px;max-width:70ch}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.notice{border:1px solid var(--line);background:var(--card);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--muted)}
+.notice.warn{border-color:var(--warn);color:var(--fg);background:var(--warn-soft)}
+
+/* hero */
+.hero{background:var(--hero-bg);color:var(--hero-fg);border-radius:20px;padding:28px clamp(18px,4vw,40px) 26px;display:flex;flex-direction:column;gap:26px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border:1px solid var(--hero-line);transform:rotate(45deg);pointer-events:none}
+.hero::before{content:"";position:absolute;right:30px;top:30px;width:110px;height:110px;border:1px solid var(--hero-line);transform:rotate(45deg);pointer-events:none}
+.hero .eyebrow{color:var(--blue-3)}
+.hero h1{font-family:var(--f-display);font-weight:500;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.015em;margin:6px 0 0;max-width:24ch;text-wrap:balance;position:relative;z-index:1}
+.hero h1 .g{color:var(--hero-muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1px solid var(--hero-line);position:relative;z-index:1}
+.stat{padding:16px 16px 0 0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font-family:var(--f-display);font-weight:500;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.stat b.blue{color:var(--blue-3)}
+.stat span{font-size:13px;color:var(--hero-fg)}
+.stat small{font-size:12px;color:var(--hero-muted)}
+
+/* controls */
+select,input[type=text],input[type=date],input[type=number],textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:6px 9px;min-width:0;max-width:100%}
+textarea{width:100%;resize:vertical}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:6px 14px;font-weight:500}
+button:hover{border-color:var(--fg)}
+button.primary{background:var(--blue);color:var(--on-blue);border-color:var(--blue)}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+button.ghost:hover{color:var(--fg);background:var(--sunk)}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button.link{border:0;background:none;padding:0;color:var(--blue);font-weight:500}
+button:disabled,select:disabled,input:disabled,textarea:disabled{opacity:.5;cursor:not-allowed}
+.switch{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:999px;padding:4px 12px 4px 5px;font-size:12.5px;color:var(--muted)}
+.switch i{width:28px;height:16px;border-radius:999px;background:var(--line-strong);position:relative;transition:background .15s}
+.switch i::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch[aria-checked="true"]{border-color:var(--blue);color:var(--blue);background:var(--blue-faint)}
+.switch[aria-checked="true"] i{background:var(--blue)}
+.switch[aria-checked="true"] i::after{transform:translateX(12px)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent}
+.pill.blue{background:var(--blue-wash);color:var(--blue)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.none{background:var(--sunk);color:var(--muted)}
+.pill.line{border-color:var(--line-strong);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}.dot.none{background:var(--line-strong)}
+
+/* OKRs */
+.okr-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr));gap:20px}
+.okr-group{background:var(--card);border-radius:var(--r);overflow:hidden}
+.okr-group > header{padding:14px 18px 10px;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.okr-group > header h3{font-size:15px}
+.kr{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:12px 18px;border-top:1px solid var(--line)}
+.kr .theme{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kr .text{min-width:0}
+.kr .evidence{grid-column:1/-1;font-size:12.5px;color:var(--blue);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kr .note{grid-column:1/-1}
+.kr .note input{width:100%;font-size:12.5px;border-style:dashed;color:var(--muted);background:transparent}
+.meter{width:90px;height:6px;background:var(--line);border-radius:999px;overflow:hidden;display:inline-block}
+.meter i{display:block;height:100%;background:var(--blue)}
+
+/* pipeline */
+.pipe-scroll{overflow-x:auto;border-radius:var(--r);background:var(--card)}
+.pipe{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(138px,1fr);min-width:1080px}
+.pipe-col{border-right:1px solid var(--line);display:flex;flex-direction:column}
+.pipe-col:last-child{border-right:0}
+.pipe-col h4{padding:12px 12px 8px;font-size:12px;font-weight:500;color:var(--muted);display:flex;justify-content:space-between;gap:6px;font-family:var(--f-body)}
+.pipe-col h4 .n{font-variant-numeric:tabular-nums;color:var(--fg)}
+.pipe-col.unset h4{color:var(--warn)}
+.pipe-col .stack{padding:0 8px 10px;display:flex;flex-direction:column;gap:6px;min-height:80px}
+.pipe-card{display:block;text-align:left;width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);font-size:12.5px;font-weight:400}
+.pipe-card:hover{border-color:var(--blue)}
+.pipe-card b{display:flex;align-items:center;gap:6px;font-weight:600}
+.pipe-card small{color:var(--muted)}
+
+/* team load */
+.load{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:10px}
+.person{display:flex;gap:10px;align-items:flex-start;background:var(--card);border-radius:var(--r);padding:12px}
+.avatar{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--fg);color:var(--bg)}
+.avatar.sm{width:26px;height:26px;font-size:10.5px}
+.person .who{min-width:0;display:flex;flex-direction:column;gap:4px}
+.person .who > b{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 4px 2px 9px;border-radius:999px;background:var(--surface);color:var(--fg);border:1px solid var(--line-strong)}
+.chip.static{padding-right:9px}
+.chip button{border:0;background:transparent;padding:0 5px;line-height:1;color:var(--muted);font-size:14px}
+.chip button:hover{color:var(--bad)}
+
+/* project cards */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.toolbar input[type=text]{flex:1 1 200px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-width:0}
+.card.mine{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.card.flash{animation:flash 1.4s ease-out}
+@keyframes flash{from{box-shadow:0 0 0 5px var(--blue-wash)}to{box-shadow:none}}
+.card-h{padding:16px 16px 12px;display:flex;flex-direction:column;gap:4px}
+.card-h .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-h h3{font-size:18px}
+.card-h .sub{color:var(--muted);font-size:13px}
+.confirm{margin:0 16px 4px;padding:9px 12px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
+.confirm b{color:var(--warn);font-weight:600;white-space:nowrap}
+.card-b{padding:12px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field > label,.field > .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:440px){.grid2{grid-template-columns:1fr}}
+.phase-track{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.phase-track i{height:4px;border-radius:2px;background:var(--line)}
+.phase-track i.on{background:var(--blue)}
+.health{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.health button{border:0;border-right:1px solid var(--line-strong);border-radius:0;padding:5px 0;width:30px;font-size:12.5px;color:var(--muted);background:var(--surface);font-variant-numeric:tabular-nums}
+.health button:last-child{border-right:0}
+.health button[aria-pressed="true"].good{background:var(--good);color:var(--bg)}
+.health button[aria-pressed="true"].warn{background:var(--warn);color:var(--bg)}
+.health button[aria-pressed="true"].bad{background:var(--bad);color:var(--bg)}
+.health-label{font-size:12.5px;font-weight:500}
+.card input[type=text].wide{width:100%}
+.mini-notes{display:flex;flex-direction:column;gap:8px}
+.mini-note{background:var(--card);border-radius:10px;padding:8px 10px;font-size:13px}
+.mini-note .meta{font-size:11.5px;color:var(--muted);margin-bottom:2px}
+.note-add{display:flex;gap:6px}
+.note-add input{flex:1}
+details.more{border-top:1px solid var(--line)}
+details.more summary{cursor:pointer;padding:10px 16px;font-size:12.5px;color:var(--muted);font-weight:500}
+details.more .inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.checks{display:grid;gap:8px}
+.checks label{display:flex;gap:8px;align-items:flex-start;font-size:13px}
+.checks label small{color:var(--muted);display:block}
+.card-f{padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+
+/* weekly check-in */
+.checkin{background:var(--card);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.ci-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ci-head .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.dim{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
+.dim .dname{font-size:13px;font-weight:500}
+.dim .crit{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.rag{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--surface)}
+.rag button{border:0;border-right:1px solid var(--line-strong);border-radius:0;padding:3px 8px;font-size:12px;font-weight:500;color:var(--muted);background:transparent;display:inline-flex;align-items:center;gap:5px}
+.rag button .dot{width:7px;height:7px}
+.rag button[aria-pressed="true"] .dot{background:var(--bg)}
+.ci-legend{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.ci-legend span{display:inline-flex;align-items:center;gap:5px}
+@media (max-width:440px){.dim{grid-template-columns:1fr}}
+.rag button:last-child{border-right:0}
+.rag button[aria-pressed="true"].good{background:var(--good);color:var(--bg)}
+.rag button[aria-pressed="true"].warn{background:var(--warn);color:var(--bg)}
+.rag button[aria-pressed="true"].bad{background:var(--bad);color:var(--bg)}
+.hscore{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+.hscore b{font-family:var(--f-display);font-size:26px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.hscore small{color:var(--muted);font-size:12px}
+.feed-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.feed-chips button{padding:4px 12px;font-size:12.5px}
+.feed-chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.feed-chips .n{color:inherit;opacity:.6;margin-left:4px;font-variant-numeric:tabular-nums}
+.rubric{overflow-x:auto}
+.rubric table{min-width:640px;font-size:12.5px}
+.rubric td,.rubric th{padding:8px 10px}
+.kr .acts{grid-column:1/-1;display:flex;justify-content:flex-end}
+.okr-add{margin-top:16px}
+
+/* updates feed */
+.composer{background:var(--card);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.feed{display:flex;flex-direction:column}
+.update{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.update:last-child{border-bottom:0}
+.update .avatar{grid-row:span 3}
+.update .meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px;color:var(--muted)}
+.update .meta b{color:var(--fg);font-weight:600}
+.update .body{white-space:pre-wrap;overflow-wrap:anywhere;max-width:80ch}
+.update .src{font-size:11.5px;color:var(--soft)}
+.update .acts{display:flex;gap:8px;align-items:center}
+
+/* team table */
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:780px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--card)}
+tr:last-child td{border-bottom:0}
+.addform{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border-radius:var(--r);padding:16px}
+.addform .field{flex:1 1 150px}
+
+/* data view */
+.data-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));gap:20px}
+.panel{background:var(--card);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel p{margin:0;color:var(--muted);font-size:13px;max-width:65ch}
+.panel textarea{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px}
+code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;background:var(--surface);border:1px solid var(--line);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.preview{font-size:12.5px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.preview table{min-width:0}
+.preview td,.preview th{padding:5px 8px}
+ul.list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line-strong);border-radius:var(--r)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <img class="logo-b" alt="Applied AI" src="data:image/png;base64,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">
+      <img class="logo-w" alt="Applied AI" src="data:image/png;base64,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">
+      <span class="unit">Solutions Consulting</span>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#overview" data-view="overview">Overview</a>
+      <a href="#projects" data-view="projects">Projects</a>
+      <a href="#updates" data-view="updates">Updates</a>
+      <a href="#team" data-view="team">Team</a>
+      <a href="#data" data-view="data">Import &amp; sources</a>
+    </nav>
+    <div class="whoami">
+      <label for="me-select">I am</label>
+      <select id="me-select"><option value="">Choose your name</option></select>
+          </div>
+  </div>
+</header>
+
+<div class="wrap"><main id="main">
+  <div class="empty">Loading the team's projects. If nothing appears, the board's shared data may not be reachable from this view yet.</div>
+</main></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ============ BOARD SETTINGS: edit these to match your process ============ */
+// Phase names use the Global Delivery Project Tracker's own stage terms
+const PHASES = [
+  {id:"mobilise",  label:"Kick-off",               hint:"Project charter, kick-off deck, Precursive set-up"},
+  {id:"discovery", label:"Discovery",              hint:"Discovery workshops, canvas approvals"},
+  {id:"pdd",       label:"PDD",                    hint:"PDD and stage sign-off"},
+  {id:"build",     label:"WF build & design",      hint:"Workflow build and design, client walkthrough"},
+  {id:"testing",   label:"SIT / UAT",              hint:"Internal testing, SIT, UAT sign-off"},
+  {id:"golive",    label:"Deployment & go-live",   hint:"Staging and production deployment"},
+  {id:"hypercare", label:"Hypercare & BVR",        hint:"Business Value Realization review"},
+  {id:"closed",    label:"Project closure",        hint:"Project closure documentation signed"}
+];
+const STATUSES = ["Active","Not started","On hold","Blocked","Completed"];
+const OKR_STATUSES = ["In progress","At risk","Done","Not started"];
+const CHECKIN_DAYS = 7;   // a weekly check-in older than this is due again
+
+// HEALTH SCORE: the SC rates five areas Green / Amber / Red each week.
+// Score = average of the five ratings (Green 5, Amber 3, Red 1), to one decimal.
+// Caps: one Red caps the score at 3.0; two or more Reds cap it at 2.0.
+// No score until all five areas are rated.
+const DIMENSIONS = [
+  {id:"schedule", label:"Schedule",            G:"On plan; milestones met",                                  A:"Slipping but recoverable within the current phase",            R:"Milestone missed, or a timeline extension or CR is needed"},
+  {id:"scope",    label:"Scope & sign-offs",   G:"Scope agreed; SOW, PDD and CRs signed",                    A:"A sign-off is pending, or new requests are under discussion",  R:"Unsigned scope or contract is blocking work, or work added without a CR"},
+  {id:"client",   label:"Client dependencies", G:"Client provides data, access, APIs and decisions on time", A:"Some client items are late and being chased",                   R:"Late client items are blocking delivery"},
+  {id:"quality",  label:"Solution quality",    G:"Workflows meet the agreed success criteria",                A:"Below the criteria, with a fix plan in place",                   R:"Below the criteria with no clear fix, or no criteria agreed"},
+  {id:"team",     label:"Team & capacity",     G:"Right people in place at sustainable hours",                A:"Team stretched, or a key person at risk",                        R:"Missing roles, or sustained overtime to hold dates"}
+];
+const RAG = {G:{label:"Green",short:"G",pts:5,tone:"good"},A:{label:"Amber",short:"A",pts:3,tone:"warn"},R:{label:"Red",short:"R",pts:1,tone:"bad"}};
+const HEALTH = {5:{label:"Healthy",tone:"good",range:"4.5 to 5.0"},4:{label:"On track",tone:"good",range:"3.5 to 4.4"},3:{label:"Watch",tone:"warn",range:"2.5 to 3.4"},2:{label:"At risk",tone:"bad",range:"1.5 to 2.4"},1:{label:"Critical",tone:"bad",range:"1.0 to 1.4"}};
+function healthOf(p){
+  const d=p.dims||{}; const vals=DIMENSIONS.map(x=>d[x.id]).filter(v=>RAG[v]);
+  const reds=vals.filter(v=>v==="R").length;
+  if(vals.length<DIMENSIONS.length) return {score:null,rated:vals.length,reds,capped:false};
+  const raw=vals.reduce((a,v)=>a+RAG[v].pts,0)/vals.length; const cap=reds>=2?2:reds===1?3:5;
+  return {score:Math.round(Math.min(raw,cap)*10)/10,rated:vals.length,reds,capped:raw>cap};
+}
+function healthBand(s){ return s==null?null:s>=4.5?5:s>=3.5?4:s>=2.5?3:s>=1.5?2:1; }
+/* ========================================================================== */
+
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = v => String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const slug = s => String(s||"").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60) || ("x"+Date.now());
+const phaseIdx = id => PHASES.findIndex(p=>p.id===id);
+const phaseLabel = id => (PHASES.find(p=>p.id===id)||{label:"Not set"}).label;
+const pTone = p => { const b=healthBand(healthOf(p).score); return b?HEALTH[b].tone:"none"; };
+const fullName = m => [m.first,m.last].filter(Boolean).join(" ").trim();
+const initials = m => (((m.first||"?").trim()[0]||"")+((m.last||"").trim()[0]||"")).toUpperCase();
+const todayISO = () => new Date().toISOString().slice(0,10);
+function fmtDate(iso){ if(!iso) return ""; const d=new Date(iso.length===10?iso+"T12:00:00":iso); return isNaN(d)?iso:d.toLocaleDateString(undefined,{day:"numeric",month:"short"}); }
+function ago(iso){ if(!iso) return ""; const s=(Date.now()-new Date(iso))/1000; if(s<60) return "just now"; if(s<3600) return Math.round(s/60)+" min ago"; if(s<86400) return Math.round(s/3600)+" h ago"; const d=Math.round(s/86400); return d===1?"yesterday":d<14?d+" days ago":fmtDate(iso); }
+
+let sb=null;
+const S = {members:[],projects:[],okrs:[],notes:[],got:{members:false,projects:false,okrs:false,notes:false},canWrite:true,
+  view:"overview", me:"", filter:{q:"",phase:"all",status:"all",mine:false,disc:false}, feedProject:"all", ovFeed:"all", pendingRender:false, stale:false};
+try{ S.me=localStorage.getItem("sc-me")||""; const f=JSON.parse(localStorage.getItem("sc-filter")||"null"); if(f) Object.assign(S.filter,f,{q:""}); }catch(e){}
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2800); }
+
+/* ---------- writes: Supabase, one at a time per record ---------- */
+const COLS=["members","projects","okrs","notes"];
+const cache={members:new Map(),projects:new Map(),okrs:new Map(),notes:new Map()};
+function meName(){ const m=S.me&&memberById(S.me); return m?fullName(m):""; }
+function stamp(o){ o.updatedAt=new Date().toISOString(); o.updatedByName=meName(); return o; }
+function isObj(v){ return v&&typeof v==="object"&&!Array.isArray(v); }
+function deepMerge(a,b){ const o={...(a||{})}; for(const k in b){ o[k]=isObj(o[k])&&isObj(b[k])?deepMerge(o[k],b[k]):b[k]; } return o; }
+function syncState(){
+  for(const c of COLS) S[c]=[...cache[c].entries()].map(([id,d])=>({id,...d}));
+  S.notes=S.notes.filter(n=>n.text).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+function local(col,id,data){ if(data===null) cache[col].delete(id); else cache[col].set(id,data); syncState(); render(); }
+const queues=new Map();
+function enqueue(path,fn){ const p=(queues.get(path)||Promise.resolve()).then(fn).catch(onWriteError); queues.set(path,p); return p; }
+function ok(res){ if(res.error) throw res.error; return res; }
+function patch(col,id,data){ if(!sb||!S.canWrite) return; stamp(data); const cur=cache[col].get(id); if(cur) local(col,id,deepMerge(cur,data));
+  return enqueue(col+"/"+id,async()=>ok(await sb.rpc("merge_doc",{p_collection:col,p_id:id,p_patch:data}))); }
+function create(col,id,data){ if(!sb||!S.canWrite) return; stamp(data); local(col,id,data);
+  return enqueue(col+"/"+id,async()=>ok(await sb.from("docs").upsert({collection:col,id,data}))); }
+function remove(col,id){ if(!sb||!S.canWrite) return; local(col,id,null);
+  return enqueue(col+"/"+id,async()=>ok(await sb.from("docs").delete().match({collection:col,id}))); }
+function onWriteError(e){
+  console.error(e); const msg=String((e&&(e.message||e.code))||"");
+  if(/row-level security|not allowed|42501|401/i.test(msg)) toast("The database refused the change. Run supabase/open-access.sql in Supabase, then try again.");
+  else toast("That change didn't save. Check your connection and try again.");
+  reload();
+}
+async function reload(){
+  const res=await sb.from("docs").select("collection,id,data");
+  if(res.error){ S.stale=true; render(); return; }
+  for(const c of COLS) cache[c].clear();
+  for(const r of res.data) if(cache[r.collection]) cache[r.collection].set(r.id,r.data);
+  for(const c of COLS) S.got[c]=true; S.stale=false; syncState(); render();
+}
+
+/* ---------- derived ---------- */
+const memberById = id => S.members.find(m=>m.id===id);
+const projectById = id => S.projects.find(p=>p.id===id);
+const roleIn = (p,mid) => (p.assignees||[]).includes(mid)?"team":(p.support||[]).includes(mid)?"support":"";
+const projectsOf = mid => S.projects.filter(p=>roleIn(p,mid));
+const isMine = p => !!(S.me && roleIn(p,S.me));
+const notesFor = pid => S.notes.filter(n=>n.projectId===pid);
+const STATUS_ORDER = s => { const i=STATUSES.indexOf(s); return i<0?99:i; };
+function sortProjects(list){ return [...list].sort((a,b)=>STATUS_ORDER(a.status)-STATUS_ORDER(b.status) || phaseIdx(b.phase)-phaseIdx(a.phase) || a.name.localeCompare(b.name)); }
+function sortMembers(list){ return [...list].sort((a,b)=>(a.order??999)-(b.order??999) || fullName(a).localeCompare(fullName(b))); }
+const checkinFresh = p => p.checkedAt && (Date.now()-new Date(p.checkedAt))/86400000 < CHECKIN_DAYS;
+const checkinDue = p => p.status==="Active" && !checkinFresh(p);
+
+const EVIDENCE = {
+  pdd:  {label:"PDD produced on Opus", calc:()=>{ const pool=S.projects.filter(p=>phaseIdx(p.phase)>=phaseIdx("pdd")); const n=pool.filter(p=>p.pddOpus).length; return {n,d:pool.length,txt:pool.length?`${n} of ${pool.length} projects at PDD stage or later have their PDD on Opus`:"No projects have reached the PDD stage yet"}; }},
+  day0: {label:"Day 0 Value Baseline", calc:()=>{ const pool=S.projects.filter(p=>p.status!=="Completed"&&p.status!=="Not started"&&p.status); const n=pool.filter(p=>p.day0).length; return {n,d:pool.length,txt:`${n} of ${pool.length} started projects have a Day 0 Value Baseline`}; }},
+  bvr:  {label:"BVR review done", calc:()=>{ const pool=S.projects.filter(p=>phaseIdx(p.phase)>=phaseIdx("golive")); const n=pool.filter(p=>p.bvr).length; return {n,d:pool.length,txt:pool.length?`${n} of ${pool.length} projects in production have a BVR review`:"No projects are in deployment or later yet"}; }},
+  lighthouse:{label:"Lighthouse delivered", calc:()=>{ const pool=S.projects.filter(p=>p.lighthouse); const n=pool.filter(p=>p.status==="Completed").length; return {n,d:pool.length,txt:`${n} of ${pool.length} lighthouse projects delivered`}; }},
+  csat: {label:"CSAT at closure", calc:()=>{ const v=S.projects.map(p=>Number(p.csat)).filter(x=>x>0); if(!v.length) return {n:0,d:0,txt:"No CSAT scores recorded on projects yet"}; const avg=v.reduce((a,b)=>a+b,0)/v.length; return {n:Math.min(avg,6.5),d:6.5,txt:`Average CSAT ${avg.toFixed(2)} of 7 across ${v.length} project${v.length>1?"s":""} (target 6.5)`}; }},
+  checkins:{label:"Weekly check-ins", calc:()=>{ const pool=S.projects.filter(p=>p.status==="Active"); const n=pool.filter(checkinFresh).length; return {n,d:pool.length,txt:`${n} of ${pool.length} active projects checked in this week`}; }}
+};
+
+/* ---------- rendering ---------- */
+function setView(){
+  const v=(location.hash||"#overview").slice(1);
+  S.view=["overview","projects","updates","team","data"].includes(v)?v:"overview";
+  document.querySelectorAll("nav.tabs a").forEach(a=>{ if(a.dataset.view===S.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  render(); window.scrollTo(0,0);
+}
+function typing(){ const a=document.activeElement; return a && $("#main").contains(a) && a.matches("input[type=text],input[type=number],input[type=date],textarea"); }
+function render(){
+  if(typing()){ S.pendingRender=true; return; }
+  S.pendingRender=false; renderMe();
+  if(S.auth!=="in"){ $("#main").innerHTML=authView(); return; }
+  const loaded=Object.values(S.got).every(Boolean);
+  let h="";
+  if(!sb) h=`<div class="notice warn">The board can't reach its database. Check config.js has your Supabase URL and anon key.</div>`;
+  else if(!loaded) h=`<div class="empty">Loading the team's projects.${S.stale?" This is taking longer than usual; the shared data may not be reachable right now.":""}</div>`;
+  else {
+    if(!S.canWrite) h+=`<div class="notice warn">You can view this board but not change it. Ask the board owner to give you Contributor access.</div>`;
+    else if(S.stale) h+=`<div class="notice">Showing saved data. It may be out of date until the connection recovers.</div>`;
+    h+=({overview:viewOverview,projects:viewProjects,updates:viewUpdates,team:viewTeam,data:viewData})[S.view]();
+  }
+  $("#main").innerHTML=h;
+}
+function renderMe(){
+  const sel=$("#me-select");
+  const html=['<option value="">Choose your name</option>'].concat(sortMembers(S.members).map(m=>`<option value="${esc(m.id)}">${esc(fullName(m))}</option>`)).join("");
+  if(sel.dataset.sig!==html){ sel.innerHTML=html; sel.dataset.sig=html; }
+  sel.value=S.me;
+}
+function authView(){
+  if(S.auth==="loading") return `<div class="empty">Checking your sign-in.</div>`;
+  if(S.auth==="nolib") return `<div class="signin"><h1>Can't load the sign-in library</h1><p>The page couldn't download the Supabase library from cdn.jsdelivr.net. Check your connection or any network filter, then refresh.</p></div>`;
+  if(S.auth==="config") return `<div class="signin"><h1>Almost there</h1><p>Add your Supabase project URL and anon key to <code>config.js</code>, then redeploy. The README has the steps.</p></div>`;
+  const denied=S.auth==="denied";
+  return `<div class="signin"><div class="eyebrow">Solutions Consulting</div>
+    <h1><span class="g">SC Delivery Board. </span>Sign in to see the team's projects.</h1>
+    ${denied?`<div class="notice warn">${esc(S.deniedEmail||"That account")} can't open this board. Use your @aaico.com or @appliedai.com Google account.</div>`:`<p>Use your @aaico.com or @appliedai.com Google account.</p>`}
+    <div><button class="primary" id="sign-in" type="button">Sign in with Google</button></div></div>`;
+}
+const dis = () => S.canWrite?"":" disabled";
+const opt = (v,label,cur)=>`<option value="${esc(v)}"${v===cur?" selected":""}>${esc(label)}</option>`;
+function authorHTML(n){
+  const m=n.memberId&&memberById(n.memberId);
+  if(m) return {av:esc(initials(m)),name:esc(fullName(m))};
+  if(n.authorName||n.authorId){ const nm=n.authorName||n.authorId; return {av:esc(nm.split(/[\s@.]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase()),name:esc(nm)}; }
+  return {av:"·",name:"Team"};
+}
+function whoChecked(p){ const m=p.checkedMember&&memberById(p.checkedMember); return m?esc(fullName(m)):p.checkedByName?esc(p.checkedByName):""; }
+
+/* Updates feed with project / client filter */
+function feedFilter(list,key){ return key==="all"?list:key==="team"?list.filter(n=>!n.projectId):list.filter(n=>n.projectId===key); }
+function feedChips(cur,scope){
+  const count=k=>feedFilter(S.notes,k).length;
+  const chip=(k,label,title)=>`<button type="button" data-feed="${esc(k)}" data-scope="${scope}" aria-pressed="${cur===k}"${title?` title="${esc(title)}"`:""}>${esc(label)}<span class="n">${count(k)}</span></button>`;
+  return `<div class="feed-chips" role="group" aria-label="Filter updates by project or client">${chip("all","All")}${chip("team","Team-wide")}${
+    [...S.projects].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>chip(p.id,p.name,p.client&&p.client!==p.name?`Client: ${p.client}`:"")).join("")}</div>`;
+}
+
+/* Overview */
+function viewOverview(){
+  const P=S.projects, active=P.filter(p=>p.status==="Active"), disc=P.filter(p=>p.inDiscovery&&p.status!=="Completed");
+  const scored=P.filter(p=>p.status!=="Completed"&&healthOf(p).score!=null); const avg=scored.length?scored.reduce((a,p)=>a+healthOf(p).score,0)/scored.length:0;
+  const due=active.filter(checkinDue); const confirm=P.filter(p=>p.confirm);
+  let h=`<section class="hero"><div><div class="eyebrow">Solutions Consulting delivery board</div>
+    <h1><span class="g">${P.length} projects, ${S.members.length} consultants. </span>Every phase, owner and update in one place.</h1></div>
+    <div class="stats">
+      <div class="stat"><b class="blue">${active.length}</b><span>Active projects</span><small>${P.filter(p=>p.status==="On hold").length} on hold, ${P.filter(p=>p.status==="Not started"||!p.status).length} not started</small></div>
+      <div class="stat"><b>${disc.length}</b><span>In discovery</span><small>${disc.map(p=>esc(p.name)).join(", ")||"None"}</small></div>
+      <div class="stat"><b>${active.length-due.length}<span style="font-size:22px;color:var(--hero-muted)">/${active.length}</span></b><span>Weekly check-ins done</span><small>${due.length?"Due: "+due.map(p=>esc(p.name)).join(", "):"All active projects are current"}</small></div>
+      ${avg?`<div class="stat"><b>${avg.toFixed(1)}</b><span>Average health</span><small>${scored.length} of ${P.length} projects scored, out of 5</small></div>`
+        :`<div class="stat"><b>0<span style="font-size:22px;color:var(--hero-muted)">/${P.length}</span></b><span>Projects with a health score</span><small>Average shows once SCs rate their projects</small></div>`}
+      <div class="stat"><b>${confirm.length}</b><span>To confirm</span><small>Sources disagree or are silent</small></div>
+    </div></section>`;
+  h+=`<section><div class="sec-head"><h2><span class="g">What we're measured on. </span>OKRs</h2><p>The latest OKRs in the weekly check-in doc are Q3, which ended 30 Sep. Measured key results update from the SCs' weekly check-ins. Add Q4 key results at the bottom when they're set.</p></div>${okrBlock()}</section>`;
+  const unset=sortProjects(P.filter(p=>phaseIdx(p.phase)<0));
+  h+=`<section><div class="sec-head"><h2><span class="g">Where each project sits. </span>Phase pipeline</h2><p>Dot colour is the project's health score. Select a project to open it.</p></div>
+  <div class="pipe-scroll"><div class="pipe">${unset.length?pipeCol({label:"Phase not set",hint:"Sources don't state a phase"},unset,true):""}${PHASES.map(ph=>pipeCol(ph,sortProjects(P.filter(p=>p.phase===ph.id)))).join("")}</div></div></section>`;
+  const latest=feedFilter(S.notes,S.ovFeed).slice(0,6);
+  h+=`<section><div class="sec-head"><h2><span class="g">What changed. </span>Latest updates</h2><button class="link" data-act="to-updates">All updates and add your own</button></div>
+  ${feedChips(S.ovFeed,"ov")}
+  ${latest.length?`<div class="feed">${latest.map(noteRow).join("")}</div>`:`<div class="empty">No updates for this ${S.ovFeed==="team"?"filter":"project"} yet.</div>`}</section>`;
+  const today=todayISO();
+  h+=`<section><div class="sec-head"><h2><span class="g">Who's on what. </span>Team</h2><p>Team members and support roles. Change them in the Team or Projects view.</p></div><div class="load">${
+    sortMembers(S.members).map(m=>{ const ps=projectsOf(m.id); const starts=m.start&&m.start>today;
+      return `<div class="person"><div class="avatar">${esc(initials(m))}</div><div class="who"><b>${esc(fullName(m))}</b>
+      <span class="muted" style="font-size:12px">${esc(m.location||"")}${m.sector?" · "+esc(m.sector):""}</span>
+      ${starts?`<span><span class="pill blue">Starts ${esc(fmtDate(m.start))}</span></span>`:""}
+      <div class="chips">${ps.length?ps.map(p=>`<span class="chip static"><span class="dot ${pTone(p)}"></span>${esc(p.name)}${roleIn(p,m.id)==="support"?' <span class="muted">· support</span>':""}</span>`).join(""):`<span class="muted" style="font-size:12px">No project assigned</span>`}</div></div></div>`;}).join("")
+  }</div></section>`;
+  return h;
+}
+function pipeCol(ph,list,isUnset){
+  return `<div class="pipe-col${isUnset?" unset":""}"><h4 title="${esc(ph.hint)}"><span>${esc(ph.label)}</span><span class="n">${list.length}</span></h4><div class="stack">${
+    list.map(p=>{ const h=healthOf(p); return `<button class="pipe-card" data-act="goto" data-id="${esc(p.id)}"><b><span class="dot ${pTone(p)}"></span>${esc(p.name)}</b><small>${esc(p.status||"Status not set")}${h.score!=null?` · ${h.score.toFixed(1)}`:""}${p.inDiscovery&&ph.id!=="discovery"?" · in discovery":""}${checkinDue(p)?" · check-in due":""}</small></button>`; }).join("")}</div></div>`;
+}
+function okrBlock(){
+  const groups=[...new Set(S.okrs.map(o=>o.group))];
+  let h=groups.length?`<div class="okr-groups">${groups.map(g=>{
+    const list=S.okrs.filter(o=>o.group===g).sort((a,b)=>(a.order??0)-(b.order??0));
+    return `<div class="okr-group"><header><h3>${esc(g)}</h3><span class="muted num" style="font-size:12px">${list.filter(o=>o.status==="Done").length} of ${list.length} done</span></header>${
+      list.map(o=>{ const ev=o.evidence&&EVIDENCE[o.evidence]?EVIDENCE[o.evidence].calc():null;
+        return `<div class="kr"><div class="text">${o.theme?`<div class="theme">${esc(o.theme)}</div>`:""}${esc(o.text)}</div>
+          <div><select aria-label="Status" data-okr="${esc(o.id)}" data-f="status"${dis()}>${o.status?"":opt("","Status not set","")}${OKR_STATUSES.map(s=>opt(s,s,o.status)).join("")}</select></div>
+          ${ev?`<div class="evidence">${ev.d?`<span class="meter"><i style="width:${Math.min(100,Math.round(ev.n/ev.d*100))}%"></i></span>`:""}<span>Measured: ${esc(ev.txt)}</span></div>`:`<div class="evidence" style="color:var(--muted)">Tracked by note and status</div>`}
+          <div class="note"><input type="text" id="okr-note-${esc(o.id)}" aria-label="Note" placeholder="Add a note" value="${esc(o.note||"")}" data-okr="${esc(o.id)}" data-f="note"${dis()}></div>
+          <div class="acts"><span data-confirm-wrap><button type="button" class="ghost" style="padding:2px 8px;font-size:12px" data-ask-del-okr="${esc(o.id)}"${dis()}>Remove</button></span></div></div>`; }).join("")
+    }</div>`; }).join("")}</div>`:`<div class="empty">No OKRs on the board yet.</div>`;
+  h+=`<form class="addform okr-add" id="add-kr">
+    <div class="field" style="flex:1 1 200px"><label for="kr-group">OKR set</label><select id="kr-group"${dis()}>${groups.map(g=>opt(g,g,"")).join("")}<option value="__new">New set, e.g. Q4 OKRs · SC specific</option></select></div>
+    <div class="field" style="flex:1 1 200px"><label for="kr-newgroup">New set name</label><input type="text" id="kr-newgroup" placeholder="Only for a new set"${dis()}></div>
+    <div class="field" style="flex:1 1 160px"><label for="kr-theme">Theme</label><input type="text" id="kr-theme" placeholder="e.g. Exceptional Delivery"${dis()}></div>
+    <div class="field" style="flex:3 1 320px"><label for="kr-text">Key result</label><input type="text" id="kr-text" required${dis()}></div>
+    <div class="field" style="flex:1 1 200px"><label for="kr-ev">Measure from projects</label><select id="kr-ev"${dis()}>${opt("","Not measured","")}${Object.entries(EVIDENCE).map(([k,v])=>opt(k,v.label,"")).join("")}</select></div>
+    <button class="primary" type="submit"${dis()}>Add key result</button></form>`;
+  return h;
+}
+
+/* Projects */
+function viewProjects(){
+  const f=S.filter, q=f.q.trim().toLowerCase();
+  let list=S.projects.filter(p=>(f.phase==="all"||p.phase===f.phase)&&(f.status==="all"||p.status===f.status)&&(!f.disc||p.inDiscovery)&&(!f.mine||isMine(p))&&
+    (!q||[p.name,p.client,p.useCase,[...(p.assignees||[]),...(p.support||[])].map(id=>fullName(memberById(id)||{})).join(" ")].join(" ").toLowerCase().includes(q)));
+  list=sortProjects(list);
+  const meM=S.me&&memberById(S.me);
+  const intro = meM&&f.mine ? `Projects where ${esc(fullName(meM))} is on the team or supporting. Do your weekly check-in on each one; every field saves as you change it.`
+    : meM ? `Showing every project. Your projects are outlined in blue.`
+    : `Every project the team is running. Choose your name in "I am" at the top to see just your projects.`;
+  return `<section><div class="sec-head"><h2><span class="g">${meM&&f.mine?"Your work. ":"Keep projects current. "}</span>${meM&&f.mine?"My projects":"Projects"}</h2><p>${intro}</p></div>
+  <div class="toolbar">
+    <input type="text" id="f-q" placeholder="Search project, client or person" value="${esc(f.q)}" aria-label="Search">
+    <select id="f-phase" aria-label="Phase">${opt("all","All phases",f.phase)}${PHASES.map(p=>opt(p.id,p.label,f.phase)).join("")}</select>
+    <select id="f-status" aria-label="Status">${opt("all","All statuses",f.status)}${STATUSES.map(s=>opt(s,s,f.status)).join("")}</select>
+    <button class="switch" role="switch" id="f-disc" aria-checked="${f.disc}"><i></i>In discovery</button>
+    <button class="switch" role="switch" id="f-mine" aria-checked="${f.mine}"${S.me?"":" disabled title=\"Choose your name in I am first\""}><i></i>My projects</button>
+  </div>
+  ${list.length?`<div class="cards">${list.map(card).join("")}</div>`:`<div class="empty">${meM&&f.mine?`No projects list ${esc(fullName(meM))} on the team or as support yet. <button class="link" id="show-all">Show all projects</button>`:"No projects match these filters."}</div>`}
+  ${meM&&f.mine&&list.length?`<p class="muted" style="margin:14px 0 0;font-size:13px">Looking for someone else's project? <button class="link" id="show-all">Show all ${S.projects.length} projects</button></p>`:""}</section>
+  <section><div class="sec-head"><h2>Add a project</h2></div>
+  <form class="addform" id="add-project">
+    <div class="field"><label for="np-name">Project name</label><input type="text" id="np-name" required${dis()}></div>
+    <div class="field"><label for="np-client">Client</label><input type="text" id="np-client"${dis()}></div>
+    <div class="field"><label for="np-uc">Use case</label><input type="text" id="np-uc"${dis()}></div>
+    <div class="field" style="flex:0 1 150px"><label for="np-sector">Sector</label><select id="np-sector"${dis()}>${opt("","Not set","")}${opt("Commercial","Commercial","")}${opt("Public","Public","")}</select></div>
+    <button class="primary" type="submit"${dis()}>Add project</button>
+  </form></section>`;
+}
+function peopleField(p,key,label,empty){
+  const id=esc(p.id), ids=p[key]||[], taken=[...(p.assignees||[]),...(p.support||[])];
+  const list=ids.map(memberById).filter(Boolean), free=sortMembers(S.members).filter(m=>!taken.includes(m.id));
+  return `<div class="field"><span class="lbl">${label}</span>
+    <div class="chips">${list.map(m=>`<span class="chip">${esc(fullName(m))}<button type="button" aria-label="Remove ${esc(fullName(m))}" data-unassign="${esc(m.id)}" data-role="${key}" data-p="${id}"${dis()}>×</button></span>`).join("")||`<span class="muted" style="font-size:12.5px">${empty}</span>`}</div>
+    ${free.length?`<select aria-label="Add to ${label}" data-assign="${id}" data-role="${key}"${dis()}><option value="">+ Add ${key==="support"?"support":"team member"}</option>${free.map(m=>opt(m.id,fullName(m),"")).join("")}</select>`:""}</div>`;
+}
+function card(p){
+  const pi=phaseIdx(p.phase), id=esc(p.id), h=healthOf(p), band=healthBand(h.score), d=p.dims||{};
+  const notes=notesFor(p.id).slice(0,2);
+  const ciPill = checkinFresh(p) ? `<span class="pill good">Done ${esc(ago(p.checkedAt))}${whoChecked(p)?" by "+whoChecked(p):""}</span>` : p.status==="Active" ? `<span class="pill warn">Due this week</span>` : `<span class="pill none">${p.checkedAt?"Last "+esc(ago(p.checkedAt)):"Not started"}</span>`;
+  return `<article class="card${isMine(p)?" mine":""}" id="card-${id}">
+  <div class="card-h"><div class="row1"><h3>${esc(p.name)}</h3>${p.lighthouse?`<span class="pill blue">Lighthouse</span>`:""}</div>
+    <div class="sub">${esc([p.client!==p.name?p.client:"",p.useCase,p.sector].filter(Boolean).join(" · "))||"No use case recorded yet"}</div></div>
+  ${p.confirm?`<div class="confirm"><b>To confirm</b><span>${esc(p.confirm)}</span></div>`:""}
+  <div class="card-b">
+    <div class="grid2">
+      <div class="field"><label for="st-${id}">Status</label><select id="st-${id}" data-p="${id}" data-f="status"${dis()}>${p.status?"":opt("","Not set","")}${STATUSES.map(s=>opt(s,s,p.status)).join("")}</select></div>
+      <div class="field"><label for="ph-${id}">Phase</label><select id="ph-${id}" data-p="${id}" data-f="phase"${dis()}>${pi<0?opt("","Not set",""):""}${PHASES.map((ph,i)=>opt(ph.id,`${i+1}. ${ph.label}`,p.phase)).join("")}</select></div>
+    </div>
+    <div class="row"><div class="phase-track" aria-hidden="true" style="flex:1">${PHASES.map((_,i)=>`<i class="${pi>=0&&i<=pi?"on":""}"></i>`).join("")}</div>
+      <button type="button" class="switch" role="switch" aria-checked="${!!p.inDiscovery}" data-p="${id}" data-toggle="inDiscovery"${dis()}><i></i>In discovery</button></div>
+    <div class="grid2">${peopleField(p,"assignees","Team","Nobody assigned")}${peopleField(p,"support","Support","No support")}</div>
+
+    <div class="checkin">
+      <div class="ci-head"><span class="lbl">Weekly check-in</span>${ciPill}</div>
+      <div class="ci-legend"><span>Rate each area for this week:</span><span><i class="dot good"></i>Green: on track</span><span><i class="dot warn"></i>Amber: at risk, being handled</span><span><i class="dot bad"></i>Red: blocked or off track</span></div>
+      ${DIMENSIONS.map(x=>{ const v=d[x.id]; return `<div class="dim"><span class="dname" title="Green: ${esc(x.G)}. Amber: ${esc(x.A)}. Red: ${esc(x.R)}.">${esc(x.label)}</span>
+        <div class="rag" role="group" aria-label="${esc(x.label)} rating">${["G","A","R"].map(k=>`<button type="button" class="${RAG[k].tone}" aria-pressed="${v===k}" data-p="${id}" data-dim="${x.id}" data-v="${k}" title="${RAG[k].label}: ${esc(x[k])}"${dis()}><i class="dot ${RAG[k].tone}"></i>${RAG[k].label}</button>`).join("")}</div>
+        <span class="crit">${v?`${RAG[v].label}: ${esc(x[v])}`:"Not rated this week"}</span></div>`; }).join("")}
+      <div class="hscore">${h.score!=null?`<b style="color:var(--${HEALTH[band].tone})">${h.score.toFixed(1)}</b><span style="font-weight:600;color:var(--${HEALTH[band].tone})">${HEALTH[band].label}</span><small>${h.capped?(h.reds>=2?"Two or more reds cap the score at 2.0":"One red caps the score at 3.0"):"Average of the five ratings"}</small>`:`<span class="muted" style="font-size:13px">Health score appears when all five areas are rated (${h.rated} of 5 so far).</span>`}</div>
+      <div class="field"><label for="ns-${id}">Current focus</label><input type="text" class="wide" id="ns-${id}" data-p="${id}" data-f="nextStep" value="${esc(p.nextStep||"")}" placeholder="What the team is working on this week"${dis()}></div>
+      <div class="field"><label for="bl-${id}">Blockers and asks</label><input type="text" class="wide" id="bl-${id}" data-p="${id}" data-f="blockers" value="${esc(p.blockers||"")}" placeholder="None recorded"${dis()}></div>
+      <div class="field"><span class="lbl">OKR checks for this project</span><div class="checks">
+        <label><input type="checkbox" data-p="${id}" data-check="day0"${p.day0?" checked":""}${dis()}><span>Day 0 Value Baseline captured<small>Target metrics, KPIs and outcomes agreed before build</small></span></label>
+        <label><input type="checkbox" data-p="${id}" data-check="pddOpus"${p.pddOpus?" checked":""}${dis()}><span>PDD produced on Opus</span></label>
+        <label><input type="checkbox" data-p="${id}" data-check="bvr"${p.bvr?" checked":""}${dis()}><span>Business Value Realization review done<small>Required once the project is in production</small></span></label>
+      </div></div>
+      <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12px">Changing any rating records this week's check-in.</span><button type="button" data-checkin="${id}"${dis()}>No change this week</button></div>
+    </div>
+
+    <div class="field"><span class="lbl">Updates</span>
+      <div class="mini-notes">${notes.map(n=>{ const a=authorHTML(n); return `<div class="mini-note"><div class="meta">${a.name} · ${esc(ago(n.createdAt))}</div>${esc(n.text.length>220?n.text.slice(0,220)+"…":n.text)}</div>`; }).join("")}</div>
+      <form class="note-add" data-note-form="${id}"><input type="text" id="na-${id}" aria-label="Add an update" placeholder="Add an update for the team"${dis()}><button type="submit" class="primary"${dis()}>Post</button></form>
+      ${notesFor(p.id).length>2?`<button class="link" style="align-self:flex-start" data-act="feed" data-id="${id}">See all ${notesFor(p.id).length} updates</button>`:""}
+    </div>
+  </div>
+  <details class="more"><summary>Dates, CSAT and project settings</summary><div class="inner">
+    <div class="grid2">
+      <div class="field"><label for="td-${id}">Next milestone</label><input type="date" id="td-${id}" data-p="${id}" data-f="target" value="${esc(p.target||"")}"${dis()}></div>
+      <div class="field"><label for="cs-${id}">CSAT at closure (1 to 7)</label><input type="number" min="1" max="7" step="0.1" id="cs-${id}" data-p="${id}" data-f="csat" value="${esc(p.csat??"")}"${dis()}></div>
+    </div>
+    <div class="checks"><label><input type="checkbox" data-p="${id}" data-check="lighthouse"${p.lighthouse?" checked":""}${dis()}><span>Lighthouse customer</span></label></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" data-ask-delete="${id}"${dis()}>Remove project</button></div>
+  </div></details>
+  <div class="card-f"><span>${p.target?"Next milestone "+esc(fmtDate(p.target)):"No milestone date recorded"}</span>
+    <span>${p.updatedAt&&"updatedByName" in p?`Updated ${esc(ago(p.updatedAt))}${p.updatedByName?" by "+esc(p.updatedByName):""}`:`Source: ${esc(p.sources||"added on the board")}`}</span></div>
+  </article>`;
+}
+
+/* Updates */
+function noteRow(n){
+  const a=authorHTML(n), p=n.projectId&&projectById(n.projectId), mine=!!(S.me&&n.memberId===S.me);
+  return `<div class="update"><div class="avatar sm">${a.av}</div>
+    <div class="meta"><b>${a.name}</b>${p?`<button class="pill line" data-act="goto" data-id="${esc(p.id)}" title="${esc(p.client||"")}">${esc(p.name)}</button>`:`<span class="pill none">Team-wide</span>`}<span>${esc(ago(n.createdAt))}</span></div>
+    <div class="body">${esc(n.text)}</div>
+    <div class="acts">${n.source?`<span class="src">From ${esc(n.source)}</span>`:""}${mine&&S.canWrite?`<span data-confirm-wrap><button class="ghost" style="padding:2px 8px;font-size:12px" data-ask-del-note="${esc(n.id)}">Delete</button></span>`:""}</div></div>`;
+}
+function viewUpdates(){
+  const fp=S.feedProject; const list=feedFilter(S.notes,fp); const me=S.me&&memberById(S.me);
+  return `<section><div class="sec-head"><h2><span class="g">Tell the team what moved. </span>Updates</h2><p>Short notes on progress, decisions and asks. Everyone with access sees them straight away.</p></div>
+  <form class="composer" id="composer">
+    <div class="row">
+      <label for="c-project" class="muted" style="font-size:13px">About</label>
+      <select id="c-project"${dis()}><option value="">The whole team</option>${sortProjects(S.projects).map(p=>opt(p.id,p.name,fp!=="all"&&fp!=="team"?fp:"")).join("")}</select>
+      <span class="muted" style="font-size:13px;margin-left:auto">Posting as ${me?`<b style="color:var(--fg)">${esc(fullName(me))}</b>`:"no name. Choose your name in I am so the team knows who posted."}</span>
+    </div>
+    <textarea id="c-text" rows="3" placeholder="What changed this week, what's blocked, what you need" maxlength="4000"${dis()}></textarea>
+    <div class="row" style="justify-content:flex-end"><button class="primary" type="submit"${dis()}>Post update</button></div>
+  </form></section>
+  <section><div class="sec-head"><h2>${list.length} update${list.length===1?"":"s"}</h2></div>
+  ${feedChips(fp,"up")}
+  ${list.length?`<div class="feed">${list.map(noteRow).join("")}</div>`:`<div class="empty">No updates here yet.</div>`}</section>`;
+}
+
+/* Team */
+function viewTeam(){
+  const today=todayISO(), LOCS=["UAE","US"];
+  return `<section><div class="sec-head"><h2><span class="g">${S.members.length} consultants. </span>Team</h2><p>Add people to a project's team or as support from any row.</p></div>
+  <div class="table-scroll"><table><thead><tr><th>Name</th><th>Location</th><th>Sector</th><th>Start date</th><th>Projects</th><th></th></tr></thead><tbody>${
+    sortMembers(S.members).map(m=>{ const ps=projectsOf(m.id), free=sortProjects(S.projects).filter(p=>!roleIn(p,m.id)), id=esc(m.id);
+      const locs=LOCS.concat(m.location&&!LOCS.includes(m.location)?[m.location]:[]);
+      return `<tr${S.me===m.id?' style="background:var(--blue-faint)"':""}>
+      <td><div class="row" style="flex-wrap:nowrap"><span class="avatar sm">${esc(initials(m))}</span><b style="font-weight:600">${esc(fullName(m))}</b></div></td>
+      <td><select aria-label="Location" data-m="${id}" data-f="location"${dis()}>${locs.map(v=>opt(v,v,m.location)).join("")}</select></td>
+      <td><select aria-label="Sector" data-m="${id}" data-f="sector"${dis()}>${["Commercial","Public"].map(v=>opt(v,v,m.sector)).join("")}</select></td>
+      <td><input type="date" id="ms-${id}" aria-label="Start date" data-m="${id}" data-f="start" value="${esc(m.start||"")}"${dis()}>${m.start&&m.start>today?` <span class="pill blue">Starts ${esc(fmtDate(m.start))}</span>`:""}</td>
+      <td><div class="chips">${ps.map(p=>{ const r=roleIn(p,m.id); return `<span class="chip"><span class="dot ${pTone(p)}"></span>${esc(p.name)}${r==="support"?' <span class="muted">· support</span>':""}<button type="button" aria-label="Remove from ${esc(p.name)}" data-unassign="${id}" data-role="${r==="support"?"support":"assignees"}" data-p="${esc(p.id)}"${dis()}>×</button></span>`; }).join("")}</div>
+        ${free.length?`<div class="row" style="margin-top:6px"><select aria-label="Add to a project team" data-assign-member="${id}" data-role="assignees"${dis()}><option value="">+ Team on project</option>${free.map(p=>opt(p.id,p.name,"")).join("")}</select>
+        <select aria-label="Add as support on a project" data-assign-member="${id}" data-role="support"${dis()}><option value="">+ Support on project</option>${free.map(p=>opt(p.id,p.name,"")).join("")}</select></div>`:""}</td>
+      <td><span data-confirm-wrap><button type="button" class="ghost" data-ask-delete-member="${id}"${dis()}>Remove</button></span></td></tr>`;}).join("")
+  }</tbody></table></div></section>
+  <section><div class="sec-head"><h2>Add a team member</h2></div>
+  <form class="addform" id="add-member">
+    <div class="field"><label for="nm-first">First name</label><input type="text" id="nm-first" required${dis()}></div>
+    <div class="field"><label for="nm-last">Last name</label><input type="text" id="nm-last"${dis()}></div>
+    <div class="field" style="flex:0 1 120px"><label for="nm-loc">Location</label><select id="nm-loc"${dis()}>${LOCS.map(v=>opt(v,v,"UAE")).join("")}</select></div>
+    <div class="field" style="flex:0 1 140px"><label for="nm-sector">Sector</label><select id="nm-sector"${dis()}>${opt("Commercial","Commercial","")}${opt("Public","Public","")}</select></div>
+    <div class="field" style="flex:0 1 160px"><label for="nm-start">Start date</label><input type="date" id="nm-start"${dis()}></div>
+    <button class="primary" type="submit"${dis()}>Add person</button>
+  </form></section>`;
+}
+
+/* Guide, sources, import */
+function viewData(){
+  return `<section><div class="sec-head"><h2><span class="g">The weekly routine. </span>How SCs use the board</h2></div>
+  <div class="data-grid">
+    <div class="panel"><h3>Every week, per project</h3><ul class="list">
+      <li>Choose your name in <b>I am</b> and open <b>Projects</b>. You see projects where you're on the team or supporting.</li>
+      <li>Rate the five health areas Green, Amber or Red. That records the check-in and calculates health.</li>
+      <li>If nothing changed, press <b>No change this week</b> so the check-in still counts.</li>
+      <li>Update status, phase, "In discovery", current focus and blockers if they moved.</li>
+      <li>Tick the OKR checks once they're true (Day 0 baseline, PDD on Opus, BVR).</li>
+      <li>Post one update with what moved, what's blocked and what you need.</li>
+    </ul><p>A check-in counts for ${CHECKIN_DAYS} days. After that the project shows "Due this week" on its card and in the pipeline.</p></div>
+    <div class="panel"><h3>How health is calculated</h3>
+      <p>Score = average of the five ratings, where Green = 5, Amber = 3, Red = 1. One Red caps the score at 3.0; two or more Reds cap it at 2.0, so a single serious problem can't be averaged away. No score is shown until all five areas are rated.</p>
+      <ul class="list">${[5,4,3,2,1].map(n=>`<li><span class="dot ${HEALTH[n].tone}"></span> <b>${HEALTH[n].label}</b>: ${HEALTH[n].range}</li>`).join("")}</ul>
+      <p>Example: Green, Green, Amber, Green, Red averages 3.8, and the one Red caps it at 3.0 (Watch).</p></div>
+  </div>
+  <div class="panel rubric" style="margin-top:20px"><h3>Rating criteria</h3><table><thead><tr><th>Area</th><th>Green</th><th>Amber</th><th>Red</th></tr></thead><tbody>${
+    DIMENSIONS.map(x=>`<tr><td><b>${esc(x.label)}</b></td><td>${esc(x.G)}</td><td>${esc(x.A)}</td><td>${esc(x.R)}</td></tr>`).join("")}</tbody></table></div></section>
+  <section><div class="sec-head"><h2><span class="g">Where the data comes from. </span>Sources</h2></div>
+  <div class="data-grid">
+    <div class="panel"><h3>What was loaded, from where</h3><ul class="list">
+      <li><b>People, locations, sectors, start dates and team assignments:</b> the Team tab of "SC Team Weekly Dashboard".</li>
+      <li><b>Support roles, project status, use cases, OKR statuses and notes:</b> the latest entries in "Weekly_Solutions_Consulting_Check-In".</li>
+      <li><b>Current focus, blockers, milestone dates, phase and lighthouse flags:</b> the Week 43 to 45 pages of "Delivery &amp; Solutions Goals - breakdown".</li>
+      <li><b>Left blank on purpose:</b> health ratings and anything the sources don't state. Each SC fills these in.</li>
+      <li><b>Where sources disagree,</b> the project card shows a "To confirm" note instead of picking one.</li>
+    </ul></div>
+    <div class="panel"><h3>Phases</h3><p>In order, using the Delivery tracker's stage terms:</p>
+      <ul class="list">${PHASES.map((p,i)=>`<li><b>${i+1}. ${esc(p.label)}</b>: <span class="muted">${esc(p.hint)}</span></li>`).join("")}</ul>
+      <p>"In discovery" is a separate switch, so a project can run discovery waves while other processes are in PDD or build.</p></div>
+  </div></section>
+  <section><div class="sec-head"><h2><span class="g">Drop in new rows. </span>Import</h2><p>Paste rows copied straight from Google Sheets or a CSV export.</p></div>
+  <div class="data-grid">
+    <div class="panel"><h3>Team tab</h3>
+      <p>Columns: <code>First Name, Last Name, Location, Sector, Starting Date, Project II</code>. People are matched by full name and updated; new names are added. Projects named in <code>Project II</code> are created if missing and the person joins the project team. Separate several projects with <code>;</code>.</p>
+      <textarea id="imp-team" rows="6" placeholder="First Name	Last Name	Location	Sector	Starting Date	Project II"></textarea>
+      <div class="row"><button type="button" id="prev-team">Preview</button><button type="button" class="primary" id="go-team" disabled>Import</button><span class="muted" id="msg-team" style="font-size:12.5px"></span></div>
+      <div id="out-team"></div></div>
+    <div class="panel"><h3>Projects</h3>
+      <p>Columns: <code>Project, Client, Use Case, Sector, Phase, Status, In Discovery, Team, Support, Current Focus</code>. Team and Support are names separated by <code>;</code>. Blank cells leave existing values alone. Health isn't imported; it comes from the weekly ratings.</p>
+      <textarea id="imp-proj" rows="6" placeholder="Project	Client	Use Case	Sector	Phase	Status	In Discovery	Team	Support	Current Focus"></textarea>
+      <div class="row"><button type="button" id="prev-proj">Preview</button><button type="button" class="primary" id="go-proj" disabled>Import</button><span class="muted" id="msg-proj" style="font-size:12.5px"></span></div>
+      <div id="out-proj"></div></div>
+  </div></section>
+  <section><div class="sec-head"><h2>Export</h2><p>Copies tab-separated rows you can paste into cell A1 of a Google Sheet, or use to update Precursive.</p></div>
+  <div class="row"><button type="button" id="exp-team">Copy team</button><button type="button" id="exp-proj">Copy projects</button><button type="button" id="exp-okr">Copy OKRs</button><button type="button" id="exp-notes">Copy updates</button></div>
+  <textarea id="exp-out" rows="4" readonly hidden aria-label="Exported rows" style="margin-top:10px"></textarea></section>`;
+}
+
+/* ---------- CSV ---------- */
+function parseCSV(text){
+  text=text.replace(/\r\n?/g,"\n").trim(); if(!text) return [];
+  const delim=text.split("\n")[0].includes("\t")?"\t":","; const rows=[]; let row=[],cell="",q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true; else if(c===delim){row.push(cell);cell="";} else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell="";} else cell+=c; }
+  row.push(cell); rows.push(row);
+  return rows.map(r=>r.map(c=>c.trim())).filter(r=>r.some(Boolean));
+}
+function toObjects(rows){ const head=rows[0].map(h=>h.toLowerCase().replace(/\s+/g," ").trim()); return rows.slice(1).map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]||""]))); }
+const pick=(o,...k)=>{ for(const x of k) if(o[x]) return o[x]; return ""; };
+const names=s=>s.split(/[;,\/]/).map(x=>x.trim()).filter(Boolean);
+function parseDate(s){ if(!s) return ""; let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) return `${m[3]}-${m[1].padStart(2,"0")}-${m[2].padStart(2,"0")}`; m=s.match(/^\d{4}-\d{2}-\d{2}/); return m?m[0]:""; }
+function matchPhase(s){ s=(s||"").toLowerCase(); if(!s) return "";
+  const byLabel=PHASES.find(p=>p.label.toLowerCase()===s||p.id===s); if(byLabel) return byLabel.id;
+  const alias=[["kick","mobilise"],["charter","mobilise"],["discovery","discovery"],["pdd","pdd"],["build","build"],["design","build"],["sit","testing"],["uat","testing"],["test","testing"],["go-live","golive"],["go live","golive"],["deploy","golive"],["hypercare","hypercare"],["bvr","hypercare"],["clos","closed"]];
+  for(const [k,v] of alias) if(s.includes(k)) return v; return ""; }
+function matchMember(name){ const n=(name||"").toLowerCase().trim(); if(!n) return null; return S.members.find(m=>fullName(m).toLowerCase()===n)||S.members.find(m=>(m.first||"").trim().toLowerCase()===n)||null; }
+function findProject(name){ const n=(name||"").toLowerCase().trim(); return S.projects.find(p=>p.name.toLowerCase()===n||(p.client||"").toLowerCase()===n||p.id===slug(name)); }
+let teamPlan=null, projPlan=null;
+function planTeam(){
+  const rows=parseCSV($("#imp-team").value); if(rows.length<2) return {err:"Paste a header row plus at least one person."};
+  const list=toObjects(rows).map(o=>({first:pick(o,"first name","first"),last:pick(o,"last name","last"),location:pick(o,"location"),sector:pick(o,"sector"),start:parseDate(pick(o,"starting date","start date","start")),projects:pick(o,"project ii","project","projects").split(/[;\/]/).map(s=>s.trim()).filter(Boolean)})).filter(r=>r.first);
+  return list.length?{list}:{err:"No rows with a First Name column were found. Check the header row."};
+}
+function planProj(){
+  const rows=parseCSV($("#imp-proj").value); if(rows.length<2) return {err:"Paste a header row plus at least one project."};
+  const list=toObjects(rows).map(o=>({name:pick(o,"project","project name","name"),client:pick(o,"client","company"),useCase:pick(o,"use case","use case/ name"),sector:pick(o,"sector"),phase:matchPhase(pick(o,"phase","stage")),status:STATUSES.find(s=>s.toLowerCase()===pick(o,"status").toLowerCase())||"",inDiscovery:pick(o,"in discovery","discovery"),team:names(pick(o,"team","assigned","assigned sc","sc")),support:names(pick(o,"support")),nextStep:pick(o,"current focus","next step","status + blockers")})).filter(r=>r.name);
+  return list.length?{list}:{err:"No rows with a Project column were found. Check the header row."};
+}
+function previewTable(head,rows){ return `<div class="preview"><table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
+async function runTeamImport(){
+  let added=0,updated=0,newProj=0;
+  for(const r of teamPlan.list){
+    const nm=[r.first,r.last].filter(Boolean).join(" ").toLowerCase(); const m=S.members.find(x=>fullName(x).toLowerCase()===nm);
+    const body={first:r.first,last:r.last}; if(r.location) body.location=r.location; if(r.sector) body.sector=r.sector; if(r.start) body.start=r.start;
+    let mid; if(m){ mid=m.id; patch("members",mid,body); updated++; } else { mid=slug(r.first+" "+r.last); await create("members",mid,{location:"",sector:"",start:"",...body,order:S.members.length+added}); added++; }
+    for(const pn of r.projects){ let p=findProject(pn);
+      if(!p){ const pid=slug(pn); await create("projects",pid,{name:pn,client:pn,useCase:"",sector:"",phase:"",status:"",inDiscovery:false,assignees:[mid],support:[],sources:"Team tab import"}); S.projects.push({id:pid,name:pn,assignees:[mid],support:[]}); newProj++; continue; }
+      if(!roleIn(p,mid)){ p.assignees=[...(p.assignees||[]),mid]; patch("projects",p.id,{assignees:p.assignees}); } }
+  }
+  toast(`Imported: ${added} added, ${updated} updated${newProj?`, ${newProj} new project${newProj>1?"s":""}`:""}.`);
+}
+async function runProjImport(){
+  let added=0,updated=0;
+  for(const r of projPlan.list){
+    const team=r.team.map(matchMember).filter(Boolean).map(m=>m.id), sup=r.support.map(matchMember).filter(Boolean).map(m=>m.id).filter(x=>!team.includes(x));
+    const p=findProject(r.name); const body={};
+    for(const k of ["client","useCase","sector","phase","status","nextStep"]) if(r[k]) body[k]=r[k];
+    if(r.inDiscovery) body.inDiscovery=/^(y|yes|true|1)$/i.test(r.inDiscovery); if(team.length) body.assignees=team; if(sup.length) body.support=sup;
+    if(p){ patch("projects",p.id,body); updated++; } else { await create("projects",slug(r.name),{name:r.name,client:r.name,useCase:"",sector:"",phase:"",status:"",inDiscovery:false,assignees:[],support:[],sources:"Projects import",...body}); added++; }
+  }
+  toast(`Imported: ${added} added, ${updated} updated.`);
+}
+function tsv(rows){ return rows.map(r=>r.map(c=>String(c??"").replace(/[\t\n]/g," ")).join("\t")).join("\n"); }
+async function copyOut(text,label){
+  const out=$("#exp-out"); out.value=text; out.hidden=false;
+  try{ await navigator.clipboard.writeText(text); toast(label+" copied. Paste into cell A1 of a sheet."); }
+  catch(e){ out.focus(); out.select(); toast("Copy was blocked here. The rows are selected below; press Ctrl or Cmd + C."); }
+}
+const memberNames = ids => (ids||[]).map(id=>fullName(memberById(id)||{})).filter(Boolean).join("; ");
+
+/* ---------- events ---------- */
+function checkinStamp(){ return {checkedAt:new Date().toISOString(),checkedByName:meName(),checkedMember:S.me||""}; }
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="me-select"){ S.me=t.value; S.filter.mine=!!S.me; saveFilter(); try{localStorage.setItem("sc-me",S.me);}catch(_){} render(); return; }
+  if(t.id==="f-phase"||t.id==="f-status"){ S.filter[t.id==="f-phase"?"phase":"status"]=t.value; saveFilter(); render(); return; }
+  if(t.id==="kr-group"){ const n=$("#kr-newgroup"); if(n&&t.value==="__new") n.focus(); return; }
+  if(t.dataset.p&&t.dataset.f){ const p=projectById(t.dataset.p); if(!p) return; let v=t.value; const f=t.dataset.f;
+    if(f==="csat") v=v===""?null:Math.max(1,Math.min(7,Number(v)));
+    const data={[f]:v}; if(f==="phase"&&v==="discovery"&&!p.inDiscovery) data.inDiscovery=true;
+    patch("projects",p.id,data); return; }
+  if(t.dataset.p&&t.dataset.check){ patch("projects",t.dataset.p,{[t.dataset.check]:t.checked}); return; }
+  if(t.dataset.assign){ const p=projectById(t.dataset.assign), role=t.dataset.role; if(p&&t.value) patch("projects",p.id,{[role]:[...(p[role]||[]),t.value]}); return; }
+  if(t.dataset.assignMember){ const p=projectById(t.value), role=t.dataset.role; if(p) patch("projects",p.id,{[role]:[...(p[role]||[]),t.dataset.assignMember]}); return; }
+  if(t.dataset.m&&t.dataset.f){ patch("members",t.dataset.m,{[t.dataset.f]:t.value}); return; }
+  if(t.dataset.okr){ patch("okrs",t.dataset.okr,{[t.dataset.f]:t.value}); return; }
+});
+document.addEventListener("focusout",()=>setTimeout(()=>{ if(S.pendingRender&&!typing()) render(); },0));
+document.addEventListener("input",e=>{ if(e.target.id==="f-q"){ S.filter.q=e.target.value; clearTimeout(S.qt); S.qt=setTimeout(()=>{ const pos=e.target.selectionStart; e.target.blur(); render(); const n=$("#f-q"); if(n){n.focus(); n.setSelectionRange(pos,pos);} },250);} });
+document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.matches("input[type=text][data-f]")) e.target.blur(); });
+function saveFilter(){ try{localStorage.setItem("sc-filter",JSON.stringify({...S.filter,q:""}));}catch(_){} }
+function goto(id){ location.hash="#projects"; S.filter.mine=S.filter.mine&&isMine(projectById(id)||{}); setTimeout(()=>{ render(); const c=document.getElementById("card-"+id); if(c){ c.scrollIntoView({block:"center",behavior:"smooth"}); c.classList.add("flash"); } },80); }
+async function postNote(projectId,text){
+  text=text.trim(); if(!text||!sb||!S.canWrite) return false;
+  const id="n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  await create("notes",id,{text:text.slice(0,4000),projectId:projectId||"",memberId:S.me||"",authorId:"",authorName:"",createdAt:new Date().toISOString()});
+  return true;
+}
+
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.id==="show-all"){ S.filter.mine=false; saveFilter(); render(); return; }
+  if(b.id==="f-disc"||b.id==="f-mine"){ const k=b.id==="f-disc"?"disc":"mine"; S.filter[k]=!S.filter[k]; saveFilter(); render(); return; }
+  if(b.dataset.feed){ if(b.dataset.scope==="ov") S.ovFeed=b.dataset.feed; else S.feedProject=b.dataset.feed; render(); return; }
+  if(b.dataset.dim){ const p=projectById(b.dataset.p), cur=(p.dims||{})[b.dataset.dim]; patch("projects",p.id,{dims:{[b.dataset.dim]:cur===b.dataset.v?null:b.dataset.v},...checkinStamp()}); return; }
+  if(b.dataset.checkin){ const p=projectById(b.dataset.checkin); const h=healthOf(p); patch("projects",p.id,checkinStamp()); toast(h.score==null?"Check-in recorded. Rate all five areas to get a health score.":"Check-in recorded for this week."); return; }
+  if(b.dataset.toggle){ const p=projectById(b.dataset.p); patch("projects",p.id,{[b.dataset.toggle]:!p[b.dataset.toggle]}); return; }
+  if(b.dataset.unassign){ const p=projectById(b.dataset.p), role=b.dataset.role||"assignees"; patch("projects",p.id,{[role]:(p[role]||[]).filter(id=>id!==b.dataset.unassign)}); return; }
+  if(b.dataset.act==="goto") return goto(b.dataset.id);
+  if(b.dataset.act==="to-updates"){ S.feedProject=S.ovFeed; location.hash="#updates"; return; }
+  if(b.dataset.act==="feed"){ S.feedProject=b.dataset.id; if(S.view==="updates") render(); else location.hash="#updates"; return; }
+  if(b.dataset.askDelete){ b.parentElement.innerHTML=`<span class="muted" style="font-size:12.5px">Remove this project for everyone?</span><button type="button" class="danger" data-delete="${esc(b.dataset.askDelete)}">Remove</button><button type="button" data-cancel>Keep</button>`; return; }
+  if(b.dataset.askDeleteMember){ b.parentElement.innerHTML=`<span class="row"><button type="button" class="danger" data-delete-member="${esc(b.dataset.askDeleteMember)}">Confirm remove</button><button type="button" data-cancel>Keep</button></span>`; return; }
+  if(b.dataset.askDelNote){ b.parentElement.innerHTML=`<button class="danger" style="padding:2px 10px;font-size:12px" data-del-note="${esc(b.dataset.askDelNote)}">Delete update</button><button style="padding:2px 10px;font-size:12px" data-cancel>Keep</button>`; return; }
+  if(b.dataset.askDelOkr){ b.parentElement.innerHTML=`<span class="muted" style="font-size:12px">Remove this key result?</span> <button class="danger" style="padding:2px 10px;font-size:12px" data-del-okr="${esc(b.dataset.askDelOkr)}">Remove</button><button style="padding:2px 10px;font-size:12px" data-cancel>Keep</button>`; return; }
+  if(b.dataset.cancel!==undefined){ render(); return; }
+  if(b.dataset.delete){ remove("projects",b.dataset.delete); toast("Project removed."); return; }
+  if(b.dataset.delNote){ remove("notes",b.dataset.delNote); toast("Update deleted."); return; }
+  if(b.dataset.delOkr){ remove("okrs",b.dataset.delOkr); toast("Key result removed."); return; }
+  if(b.dataset.deleteMember){ const mid=b.dataset.deleteMember; for(const p of projectsOf(mid)) patch("projects",p.id,{assignees:(p.assignees||[]).filter(x=>x!==mid),support:(p.support||[]).filter(x=>x!==mid)}); remove("members",mid); toast("Team member removed."); return; }
+  if(b.id==="prev-team"||b.id==="prev-proj"){
+    const isT=b.id==="prev-team", plan=isT?planTeam():planProj(), out=$(isT?"#out-team":"#out-proj"), go=$(isT?"#go-team":"#go-proj"), msg=$(isT?"#msg-team":"#msg-proj");
+    if(plan.err){ msg.textContent=plan.err; out.innerHTML=""; go.disabled=true; return; }
+    const tag=n=>matchMember(n)?n:n+" (not on team)";
+    if(isT){ teamPlan=plan; msg.textContent=`${plan.list.length} people ready to import.`;
+      out.innerHTML=previewTable(["Name","Location","Sector","Start","Projects","Action"],plan.list.map(r=>[r.first+" "+r.last,r.location,r.sector,r.start,r.projects.join("; "),S.members.some(m=>fullName(m).toLowerCase()===[r.first,r.last].filter(Boolean).join(" ").toLowerCase())?"Update":"Add"])); }
+    else { projPlan=plan; msg.textContent=`${plan.list.length} projects ready to import.`;
+      out.innerHTML=previewTable(["Project","Phase","Status","Team","Support","Action"],plan.list.map(r=>[r.name,r.phase?phaseLabel(r.phase):"Not set",r.status||"Not set",r.team.map(tag).join("; "),r.support.map(tag).join("; "),findProject(r.name)?"Update":"Add"])); }
+    go.disabled=!S.canWrite; return;
+  }
+  if(b.id==="go-team"&&teamPlan){ b.disabled=true; await runTeamImport(); teamPlan=null; render(); return; }
+  if(b.id==="go-proj"&&projPlan){ b.disabled=true; await runProjImport(); projPlan=null; render(); return; }
+  if(b.id==="exp-team") return copyOut(tsv([["First Name","Last Name","Location","Sector","Starting Date","Team on","Support on"],...sortMembers(S.members).map(m=>[m.first,m.last,m.location,m.sector,m.start,S.projects.filter(p=>roleIn(p,m.id)==="team").map(p=>p.name).join("; "),S.projects.filter(p=>roleIn(p,m.id)==="support").map(p=>p.name).join("; ")])]),"Team");
+  if(b.id==="exp-proj") return copyOut(tsv([["Project","Client","Use Case","Sector","Phase","Status","In Discovery","Team","Support",...DIMENSIONS.map(x=>x.label),"Health Score","Health","Last Check-in","Current Focus","Blockers","Next Milestone","Day 0 Baseline","PDD on Opus","BVR","Lighthouse","CSAT","To Confirm"],...sortProjects(S.projects).map(p=>{ const h=healthOf(p); return [p.name,p.client,p.useCase,p.sector,phaseIdx(p.phase)<0?"":phaseLabel(p.phase),p.status,p.inDiscovery?"Yes":"No",memberNames(p.assignees),memberNames(p.support),...DIMENSIONS.map(x=>RAG[(p.dims||{})[x.id]]?.label||""),h.score??"",h.score!=null?HEALTH[healthBand(h.score)].label:"",(p.checkedAt||"").slice(0,10),p.nextStep,p.blockers,p.target,p.day0?"Yes":"No",p.pddOpus?"Yes":"No",p.bvr?"Yes":"No",p.lighthouse?"Yes":"No",p.csat??"",p.confirm]; })]),"Projects");
+  if(b.id==="exp-okr") return copyOut(tsv([["Set","Theme","Key Result","Status","Measured","Note"],...S.okrs.map(o=>[o.group,o.theme,o.text,o.status,o.evidence&&EVIDENCE[o.evidence]?EVIDENCE[o.evidence].calc().txt:"",o.note])]),"OKRs");
+  if(b.id==="exp-notes") return copyOut(tsv([["Date","Project","Client","Author","Update"],...S.notes.map(n=>{ const p=projectById(n.projectId)||{}; return [n.createdAt.slice(0,10),p.name||"Team-wide",p.client||"",fullName(memberById(n.memberId)||{})||"",n.text]; })]),"Updates");
+});
+document.addEventListener("submit",async e=>{
+  e.preventDefault(); const f=e.target;
+  if(f.dataset.noteForm){ const inp=f.querySelector("input"); const v=inp.value; inp.value=""; inp.blur(); if(await postNote(f.dataset.noteForm,v)!==false) toast("Update posted."); return; }
+  if(f.id==="composer"){ const t=$("#c-text"); const v=t.value; if(!v.trim()) return; t.value=""; t.blur(); await postNote($("#c-project").value,v); toast("Update posted."); return; }
+  if(f.id==="add-kr"){ const text=$("#kr-text").value.trim(); let group=$("#kr-group").value; if(group==="__new"||!group) group=$("#kr-newgroup").value.trim();
+    if(!text) return; if(!group){ toast("Name the new OKR set, e.g. Q4 OKRs · SC specific."); return; }
+    const order=S.okrs.filter(o=>o.group===group).length+1;
+    await create("okrs","kr-"+Date.now().toString(36),{group,order,theme:$("#kr-theme").value.trim(),text,status:"",note:"",evidence:$("#kr-ev").value});
+    f.reset(); document.activeElement&&document.activeElement.blur(); toast("Key result added."); return; }
+  if(f.id==="add-project"){ const name=$("#np-name").value.trim(); if(!name) return; const id=slug(name);
+    if(S.projects.some(p=>p.id===id)){ toast("A project with that name already exists."); return; }
+    await create("projects",id,{name,client:$("#np-client").value.trim()||name,useCase:$("#np-uc").value.trim(),sector:$("#np-sector").value,phase:"",status:"",inDiscovery:false,assignees:[],support:[],sources:"added on the board"});
+    f.reset(); document.activeElement&&document.activeElement.blur(); toast("Project added."); }
+  if(f.id==="add-member"){ const first=$("#nm-first").value.trim(), last=$("#nm-last").value.trim(); if(!first) return; const id=slug(first+" "+last);
+    if(S.members.some(m=>m.id===id)){ toast("That person is already on the team."); return; }
+    await create("members",id,{first,last,location:$("#nm-loc").value,sector:$("#nm-sector").value,start:$("#nm-start").value,order:S.members.length});
+    f.reset(); document.activeElement&&document.activeElement.blur(); toast("Team member added."); }
+});
+window.addEventListener("hashchange",setView);
+
+/* ---------- boot ---------- */
+S.auth="loading";
+(async function(){
+  setView();
+  const cfg=window.SC_CONFIG||{};
+  if(!window.supabase){ S.auth="nolib"; render(); return; }
+  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||/YOUR-/.test(cfg.supabaseUrl+cfg.supabaseAnonKey)){ S.auth="config"; render(); return; }
+  sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false}});
+  S.auth="in"; render();
+  const timer=setTimeout(()=>{ if(!Object.values(S.got).every(Boolean)){ S.stale=true; render(); } },10000);
+  await reload(); clearTimeout(timer);
+  sb.channel("docs-live").on("postgres_changes",{event:"*",schema:"public",table:"docs"},ev=>{
+    if(ev.eventType==="DELETE"){ const o=ev.old||{}; if(cache[o.collection]) local(o.collection,o.id,null); }
+    else { const n=ev.new; if(cache[n.collection]) local(n.collection,n.id,n.data); }
+  }).subscribe(status=>{ if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){ S.stale=true; render(); } });
+  // Catch up after the laptop sleeps or the tab is hidden for a while.
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") reload(); });
+})();
+</script>
+</body>
+</html>
