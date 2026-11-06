@@ -7,7 +7,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <style>
 /* Layout: AppliedAI brand. Thin blue top bar, white header with logo, black hero with two-tone headline and stats, then OKRs, pipeline, updates and team; Projects = editable cards; Updates = shared notes feed */
@@ -445,6 +445,7 @@ function renderMe(){
 }
 function authView(){
   if(S.auth==="loading") return `<div class="empty">Checking your sign-in.</div>`;
+  if(S.auth==="nolib") return `<div class="signin"><h1>Can't load the sign-in library</h1><p>The page couldn't download the Supabase library from cdn.jsdelivr.net. Check your connection or any network filter, then refresh.</p></div>`;
   if(S.auth==="config") return `<div class="signin"><h1>Almost there</h1><p>Add your Supabase project URL and anon key to <code>config.js</code>, then redeploy. The README has the steps.</p></div>`;
   const denied=S.auth==="denied";
   return `<div class="signin"><div class="eyebrow">Solutions Consulting</div>
@@ -880,7 +881,8 @@ S.auth="loading";
 (async function(){
   setView();
   const cfg=window.SC_CONFIG||{};
-  if(!window.supabase||!cfg.supabaseUrl||!cfg.supabaseAnonKey||/YOUR-/.test(cfg.supabaseUrl+cfg.supabaseAnonKey)){ S.auth="config"; render(); return; }
+  if(!window.supabase){ S.auth="nolib"; render(); return; }
+  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||/YOUR-/.test(cfg.supabaseUrl+cfg.supabaseAnonKey)){ S.auth="config"; render(); return; }
   sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
   const {data:{session}}=await sb.auth.getSession();
   if(!session){ S.auth="out"; render(); return; }
