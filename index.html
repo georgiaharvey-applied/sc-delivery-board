@@ -128,6 +128,40 @@ button:disabled,select:disabled,input:disabled,textarea:disabled{opacity:.5;curs
 
 /* OKRs */
 .okr-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr));gap:20px}
+.okr-sum{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
+.okr-sum span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.dot.info{background:var(--blue)}
+.kr{border-left:4px solid var(--line-strong)}
+.kr.tone-good{border-left-color:var(--good)}
+.kr.tone-info{border-left-color:var(--blue)}
+.kr.tone-warn{border-left-color:var(--warn)}
+.kr.tone-bad{border-left-color:var(--bad)}
+.kr select.st{font-weight:600;border-color:transparent}
+.kr select.st.tone-good{background:var(--good-soft);color:var(--good)}
+.kr select.st.tone-info{background:var(--blue-wash);color:var(--blue)}
+.kr select.st.tone-warn{background:var(--warn-soft);color:var(--warn)}
+.kr select.st.tone-bad{background:var(--bad-soft);color:var(--bad)}
+.kr select.st.tone-none{background:var(--sunk);color:var(--muted)}
+.kr.tone-good .meter i{background:var(--good)}
+.kr.tone-warn .meter i{background:var(--warn)}
+.kr.tone-bad .meter i{background:var(--bad)}
+.okr-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)}
+.okr-legend span{display:inline-flex;align-items:center;gap:6px}
+/* full-screen OKR view: everything on one screen */
+body.okr-full header.top{display:none}
+body.okr-full main{padding-block:clamp(10px,2vh,24px)}
+body.okr-full .wrap{max-width:none}
+body.okr-full .okr-full-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-bottom:clamp(8px,1.4vh,16px)}
+body.okr-full .okr-full-head h2{font-size:clamp(18px,2.4vh,24px)}
+body.okr-full .okr-groups{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+body.okr-full .okr-group > header{padding:clamp(8px,1.2vh,14px) 16px clamp(6px,.8vh,10px)}
+body.okr-full .kr{padding:clamp(5px,.95vh,11px) 14px;gap:2px 12px;font-size:clamp(12.5px,1.55vh,15px);line-height:1.35}
+body.okr-full .kr .theme{font-size:10px}
+body.okr-full .kr .evidence{font-size:clamp(11px,1.3vh,12.5px)}
+body.okr-full .kr .acts,body.okr-full .okr-add,body.okr-full .kr .note.note-blank{display:none}
+body.okr-full .kr .note input{border:0;padding:0;font-size:clamp(11px,1.3vh,12.5px);background:transparent}
+body.okr-full .kr select.st{padding:3px 8px;font-size:12.5px}
+@media (max-width:900px){body.okr-full .okr-groups{grid-template-columns:minmax(0,1fr)}}
 .okr-group{background:var(--card);border-radius:var(--r);overflow:hidden}
 .okr-group > header{padding:14px 18px 10px;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .okr-group > header h3{font-size:15px}
@@ -239,7 +273,8 @@ details.more .inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:1
 .rubric{overflow-x:auto}
 .rubric table{min-width:640px;font-size:12.5px}
 .rubric td,.rubric th{padding:8px 10px}
-.kr .acts{grid-column:1/-1;display:flex;justify-content:flex-end}
+.kr .note{grid-column:1/2}
+.kr .acts{grid-column:2/3;display:flex;justify-content:flex-end;align-items:center}
 .okr-add{margin-top:16px}
 
 /* updates feed */
@@ -320,7 +355,10 @@ const PHASES = [
   {id:"closed",    label:"Project closure",        hint:"Project closure documentation signed"}
 ];
 const STATUSES = ["Active","Not started","On hold","Blocked","Completed"];
-const OKR_STATUSES = ["In progress","At risk","Done","Not started"];
+const OKR_STATUSES = ["On track","In progress","At risk","Off track","Done","Not started"];
+// Colour per status: good = green, info = blue, warn = amber, bad = red, none = grey
+const OKR_TONE = {"On track":"good","Done":"good","In progress":"info","At risk":"warn","Off track":"bad","Not started":"none"};
+const okrTone = st => OKR_TONE[st]||"none";
 const CHECKIN_DAYS = 7;   // a weekly check-in older than this is due again
 
 // HEALTH SCORE: the SC rates five areas Green / Amber / Red each week.
@@ -441,6 +479,8 @@ function render(){
   else {
     if(!S.canWrite) h+=`<div class="notice warn">You can view this board but not change it. Ask the board owner to give you Contributor access.</div>`;
     else if(S.stale) h+=`<div class="notice">Showing saved data. It may be out of date until the connection recovers.</div>`;
+    if(S.okrFull){ document.body.classList.add("okr-full"); h=okrFullView(); $("#main").innerHTML=h; return; }
+    document.body.classList.remove("okr-full");
     h+=({overview:viewOverview,projects:viewProjects,updates:viewUpdates,team:viewTeam,data:viewData})[S.view]();
   }
   $("#main").innerHTML=h;
@@ -494,7 +534,9 @@ function viewOverview(){
         <span class="hero-people">${t.join(", ")||"Nobody assigned"}${s.length?` <span class="hero-sup">· support: ${s.join(", ")}</span>`:""}</span>
       </button>`; }).join("")}</div>`:`<p class="hero-empty">No active projects right now.</p>`}
     </section>`;
-  h+=`<section><div class="sec-head"><h2><span class="g">What we're measured on. </span>OKRs</h2><p>The latest OKRs in the weekly check-in doc are Q3, which ended 30 Sep. Measured key results update from the SCs' weekly check-ins. Add Q4 key results at the bottom when they're set.</p></div>${okrBlock()}</section>`;
+  h+=`<section><div class="sec-head"><h2><span class="g">What we're measured on. </span>OKRs</h2><button class="ghost" type="button" data-act="okr-full">⤢ Full screen</button></div>
+  <div class="okr-legend" style="margin:-6px 0 14px">${okrLegend()}</div>
+  <p class="muted" style="margin:0 0 14px;font-size:13px;max-width:70ch">The latest OKRs in the weekly check-in doc are Q3, which ended 30 Sep. Measured key results update from the SCs' weekly check-ins. Add Q4 key results at the bottom when they're set.</p>${okrBlock()}</section>`;
   const unset=sortProjects(P.filter(p=>phaseIdx(p.phase)<0));
   h+=`<section><div class="sec-head"><h2><span class="g">Where each project sits. </span>Phase pipeline</h2><p>Dot colour is the project's health score. Select a project to open it.</p></div>
   <div class="pipe-scroll"><div class="pipe">${unset.length?pipeCol({label:"Phase not set",hint:"Sources don't state a phase"},unset,true):""}${PHASES.map(ph=>pipeCol(ph,sortProjects(P.filter(p=>p.phase===ph.id)))).join("")}</div></div></section>`;
@@ -516,16 +558,23 @@ function pipeCol(ph,list,isUnset){
   return `<div class="pipe-col${isUnset?" unset":""}"><h4 title="${esc(ph.hint)}"><span>${esc(ph.label)}</span><span class="n">${list.length}</span></h4><div class="stack">${
     list.map(p=>{ const h=healthOf(p); return `<button class="pipe-card" data-act="goto" data-id="${esc(p.id)}"><b><span class="dot ${pTone(p)}"></span>${esc(p.name)}</b><small>${esc(p.status||"Status not set")}${h.score!=null?` · ${h.score.toFixed(1)}`:""}${p.inDiscovery&&ph.id!=="discovery"?" · in discovery":""}${checkinDue(p)?" · check-in due":""}</small></button>`; }).join("")}</div></div>`;
 }
+function okrLegend(){ return [["good","On track or done"],["info","In progress"],["warn","At risk"],["bad","Off track"],["none","Not started"]].map(([t,l])=>`<span><i class="dot ${t}"></i>${l}</span>`).join(""); }
+function okrFullView(){
+  return `<section><div class="okr-full-head"><h2>OKRs</h2><div class="okr-legend">${okrLegend()}</div><span style="flex:1"></span><button class="primary" type="button" data-act="okr-exit">Exit full screen</button></div>${okrBlock()}</section>`;
+}
 function okrBlock(){
   const groups=[...new Set(S.okrs.map(o=>o.group))];
   let h=groups.length?`<div class="okr-groups">${groups.map(g=>{
     const list=S.okrs.filter(o=>o.group===g).sort((a,b)=>(a.order??0)-(b.order??0));
-    return `<div class="okr-group"><header><h3>${esc(g)}</h3><span class="muted num" style="font-size:12px">${list.filter(o=>o.status==="Done").length} of ${list.length} done</span></header>${
+    const cnt=t=>list.filter(o=>okrTone(o.status)===t).length;
+    const sum=[["good","on track or done"],["info","in progress"],["warn","at risk"],["bad","off track"],["none","not started or not set"]].filter(([t])=>cnt(t)).map(([t,l])=>`<span><i class="dot ${t}"></i>${cnt(t)} ${l}</span>`).join("");
+    return `<div class="okr-group"><header><h3>${esc(g)}</h3><span class="okr-sum">${sum}</span></header>${
       list.map(o=>{ const ev=o.evidence&&EVIDENCE[o.evidence]?EVIDENCE[o.evidence].calc():null;
-        return `<div class="kr"><div class="text">${o.theme?`<div class="theme">${esc(o.theme)}</div>`:""}${esc(o.text)}</div>
-          <div><select aria-label="Status" data-okr="${esc(o.id)}" data-f="status"${dis()}>${o.status?"":opt("","Status not set","")}${OKR_STATUSES.map(s=>opt(s,s,o.status)).join("")}</select></div>
+        const tone=okrTone(o.status);
+        return `<div class="kr tone-${tone}"><div class="text">${o.theme?`<div class="theme">${esc(o.theme)}</div>`:""}${esc(o.text)}</div>
+          <div><select class="st tone-${tone}" aria-label="Status" data-okr="${esc(o.id)}" data-f="status"${dis()}>${o.status?"":opt("","Status not set","")}${OKR_STATUSES.map(s=>opt(s,s,o.status)).join("")}</select></div>
           ${ev?`<div class="evidence">${ev.d?`<span class="meter"><i style="width:${Math.min(100,Math.round(ev.n/ev.d*100))}%"></i></span>`:""}<span>Measured: ${esc(ev.txt)}</span></div>`:`<div class="evidence" style="color:var(--muted)">Tracked by note and status</div>`}
-          <div class="note"><input type="text" id="okr-note-${esc(o.id)}" aria-label="Note" placeholder="Add a note" value="${esc(o.note||"")}" data-okr="${esc(o.id)}" data-f="note"${dis()}></div>
+          <div class="note${o.note?"":" note-blank"}"><input type="text" id="okr-note-${esc(o.id)}" aria-label="Note" placeholder="Add a note" value="${esc(o.note||"")}" data-okr="${esc(o.id)}" data-f="note"${dis()}></div>
           <div class="acts"><span data-confirm-wrap><button type="button" class="ghost" style="padding:2px 8px;font-size:12px" data-ask-del-okr="${esc(o.id)}"${dis()}>Remove</button></span></div></div>`; }).join("")
     }</div>`; }).join("")}</div>`:`<div class="empty">No OKRs on the board yet.</div>`;
   h+=`<form class="addform okr-add" id="add-kr">
@@ -831,6 +880,8 @@ document.addEventListener("click",async e=>{
   if(b.dataset.checkin){ const p=projectById(b.dataset.checkin); const h=healthOf(p); patch("projects",p.id,checkinStamp()); toast(h.score==null?"Check-in recorded. Rate all five areas to get a health score.":"Check-in recorded for this week."); return; }
   if(b.dataset.toggle){ const p=projectById(b.dataset.p); patch("projects",p.id,{[b.dataset.toggle]:!p[b.dataset.toggle]}); return; }
   if(b.dataset.unassign){ const p=projectById(b.dataset.p), role=b.dataset.role||"assignees"; patch("projects",p.id,{[role]:(p[role]||[]).filter(id=>id!==b.dataset.unassign)}); return; }
+  if(b.dataset.act==="okr-full"){ S.okrFull=true; render(); window.scrollTo(0,0); const r=document.documentElement; if(r.requestFullscreen) r.requestFullscreen().catch(()=>{}); return; }
+  if(b.dataset.act==="okr-exit"){ S.okrFull=false; if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen().catch(()=>{}); render(); return; }
   if(b.dataset.act==="goto") return goto(b.dataset.id);
   if(b.dataset.act==="to-updates"){ S.feedProject=S.ovFeed; location.hash="#updates"; return; }
   if(b.dataset.act==="feed"){ S.feedProject=b.dataset.id; if(S.view==="updates") render(); else location.hash="#updates"; return; }
@@ -878,7 +929,9 @@ document.addEventListener("submit",async e=>{
     await create("members",id,{first,last,location:$("#nm-loc").value,sector:$("#nm-sector").value,start:$("#nm-start").value,order:S.members.length});
     f.reset(); document.activeElement&&document.activeElement.blur(); toast("Team member added."); }
 });
-window.addEventListener("hashchange",setView);
+window.addEventListener("hashchange",()=>{ S.okrFull=false; setView(); });
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement&&S.okrFull){ S.okrFull=false; render(); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&S.okrFull&&!document.fullscreenElement){ S.okrFull=false; render(); } });
 
 /* ---------- boot ---------- */
 S.auth="loading";
