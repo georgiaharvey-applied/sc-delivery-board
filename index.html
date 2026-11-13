@@ -75,18 +75,25 @@ h3{font-size:16px}
 .notice.warn{border-color:var(--warn);color:var(--fg);background:var(--warn-soft)}
 
 /* hero */
-.hero{background:var(--hero-bg);color:var(--hero-fg);border-radius:20px;padding:28px clamp(18px,4vw,40px) 26px;display:flex;flex-direction:column;gap:26px;position:relative;overflow:hidden}
+.hero{background:var(--hero-bg);color:var(--hero-fg);border-radius:20px;padding:26px clamp(18px,4vw,40px) 14px;display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden}
 .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border:1px solid var(--hero-line);transform:rotate(45deg);pointer-events:none}
 .hero::before{content:"";position:absolute;right:30px;top:30px;width:110px;height:110px;border:1px solid var(--hero-line);transform:rotate(45deg);pointer-events:none}
 .hero .eyebrow{color:var(--blue-3)}
 .hero h1{font-family:var(--f-display);font-weight:500;font-size:clamp(24px,3.4vw,36px);line-height:1.15;letter-spacing:-.015em;margin:6px 0 0;max-width:24ch;text-wrap:balance;position:relative;z-index:1}
 .hero h1 .g{color:var(--hero-muted)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1px solid var(--hero-line);position:relative;z-index:1}
-.stat{padding:16px 16px 0 0;display:flex;flex-direction:column;gap:4px;min-width:0}
-.stat b{font-family:var(--f-display);font-weight:500;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
-.stat b.blue{color:var(--blue-3)}
-.stat span{font-size:13px;color:var(--hero-fg)}
-.stat small{font-size:12px;color:var(--hero-muted)}
+.hero h1 .blue{color:var(--blue-3)}
+.hero-top,.hero-list,.hero-empty{position:relative;z-index:1}
+.hero-list{display:flex;flex-direction:column;border-top:1px solid var(--hero-line)}
+.hero-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(130px,.9fr) minmax(0,2.2fr);gap:4px 18px;align-items:baseline;text-align:left;width:100%;background:transparent;border:0;border-bottom:1px solid var(--hero-line);border-radius:0;padding:12px 0;color:var(--hero-fg);font-weight:400;cursor:pointer}
+.hero-row:hover{background:rgba(255,255,255,.04)}
+.hero-row:hover .hero-name{color:var(--blue-3)}
+.hero-name{font-family:var(--f-display);font-weight:500;font-size:17px;display:flex;align-items:center;gap:8px}
+.hero-phase{font-size:13px;color:var(--hero-muted)}
+.hero-people{font-size:13.5px;line-height:1.5;min-width:0}
+.hero-sup{color:var(--hero-muted)}
+.hero-empty{margin:0;color:var(--hero-muted)}
+.hero-sub{margin:6px 0 0;font-size:13px;color:var(--hero-muted)}
+@media (max-width:640px){.hero-row{grid-template-columns:minmax(0,1fr)}.hero-phase{order:2}}
 
 /* controls */
 select,input[type=text],input[type=date],input[type=number],textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:6px 9px;min-width:0;max-width:100%}
@@ -476,18 +483,17 @@ function feedChips(cur,scope){
 /* Overview */
 function viewOverview(){
   const P=S.projects, active=P.filter(p=>p.status==="Active"), disc=P.filter(p=>p.inDiscovery&&p.status!=="Completed");
-  const scored=P.filter(p=>p.status!=="Completed"&&healthOf(p).score!=null); const avg=scored.length?scored.reduce((a,p)=>a+healthOf(p).score,0)/scored.length:0;
-  const due=active.filter(checkinDue); const confirm=P.filter(p=>p.confirm);
-  let h=`<section class="hero"><div><div class="eyebrow">Solutions Consulting delivery board</div>
-    <h1><span class="g">${P.length} projects, ${S.members.length} consultants. </span>Every phase, owner and update in one place.</h1></div>
-    <div class="stats">
-      <div class="stat"><b class="blue">${active.length}</b><span>Active projects</span><small>${P.filter(p=>p.status==="On hold").length} on hold, ${P.filter(p=>p.status==="Not started"||!p.status).length} not started</small></div>
-      <div class="stat"><b>${disc.length}</b><span>In discovery</span><small>${disc.map(p=>esc(p.name)).join(", ")||"None"}</small></div>
-      <div class="stat"><b>${active.length-due.length}<span style="font-size:22px;color:var(--hero-muted)">/${active.length}</span></b><span>Weekly check-ins done</span><small>${due.length?"Due: "+due.map(p=>esc(p.name)).join(", "):"All active projects are current"}</small></div>
-      ${avg?`<div class="stat"><b>${avg.toFixed(1)}</b><span>Average health</span><small>${scored.length} of ${P.length} projects scored, out of 5</small></div>`
-        :`<div class="stat"><b>0<span style="font-size:22px;color:var(--hero-muted)">/${P.length}</span></b><span>Projects with a health score</span><small>Average shows once SCs rate their projects</small></div>`}
-      <div class="stat"><b>${confirm.length}</b><span>To confirm</span><small>Sources disagree or are silent</small></div>
-    </div></section>`;
+  const others=P.length-active.length;
+  const people=ids=>(ids||[]).map(memberById).filter(Boolean).map(m=>esc(fullName(m)));
+  let h=`<section class="hero"><div class="hero-top"><div class="eyebrow">Solutions Consulting delivery board</div>
+    <h1><span class="blue">${active.length}</span> active project${active.length===1?"":"s"}</h1>${others?`<p class="hero-sub">Plus ${others} on hold or not started. See Projects for the full list.</p>`:""}</div>
+    ${active.length?`<div class="hero-list">${sortProjects(active).map(p=>{ const t=people(p.assignees), s=people(p.support);
+      return `<button class="hero-row" data-act="goto" data-id="${esc(p.id)}">
+        <span class="hero-name"><span class="dot ${pTone(p)}"></span>${esc(p.name)}</span>
+        <span class="hero-phase">${esc(phaseIdx(p.phase)<0?"Phase not set":phaseLabel(p.phase))}${p.inDiscovery&&p.phase!=="discovery"?" · in discovery":""}</span>
+        <span class="hero-people">${t.join(", ")||"Nobody assigned"}${s.length?` <span class="hero-sup">· support: ${s.join(", ")}</span>`:""}</span>
+      </button>`; }).join("")}</div>`:`<p class="hero-empty">No active projects right now.</p>`}
+    </section>`;
   h+=`<section><div class="sec-head"><h2><span class="g">What we're measured on. </span>OKRs</h2><p>The latest OKRs in the weekly check-in doc are Q3, which ended 30 Sep. Measured key results update from the SCs' weekly check-ins. Add Q4 key results at the bottom when they're set.</p></div>${okrBlock()}</section>`;
   const unset=sortProjects(P.filter(p=>phaseIdx(p.phase)<0));
   h+=`<section><div class="sec-head"><h2><span class="g">Where each project sits. </span>Phase pipeline</h2><p>Dot colour is the project's health score. Select a project to open it.</p></div>
